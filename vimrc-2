@@ -181,4 +181,6 @@ endfunction
 
 "}}}
 
+let g:gista#github_user = 'hspin'
+
  " vim: set foldenable foldmethod=marker foldlevel=0:
