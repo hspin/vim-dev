@@ -179,6 +179,8 @@ function! s:unite_settings()
   imap <buffer> jk <C-g> 
 endfunction
 
+let g:unite_source_rec_async_command='ag --nocolor --nogroup --ignore "bower_components" --ignore "dist" --ignore ".tmp" --ignore ".git" --ignore "node_modules" --hidden -g ""'
+
 "}}}
 
 let g:gista#github_user = 'hspin'
