@@ -31,6 +31,8 @@ function! vimshell#parser#check_script(script) "{{{
   endfor
 endfunction"}}}
 function! vimshell#parser#eval_script(script, context) "{{{
+  let context = vimshell#init#_context(a:context)
+
   " Split statements.
   let statements = vimproc#parser#parse_statements(a:script)
   let max = len(statements)
@@ -41,11 +43,11 @@ function! vimshell#parser#eval_script(script, context) "{{{
   let i = 0
   while i < max
     try
-      let ret =  s:execute_statement(statements[i].statement, a:context)
+      let ret =  s:execute_statement(statements[i].statement, context)
     catch /^exe: Process started./
       " Change continuation.
       let b:vimshell.continuation = {
-            \ 'statements' : statements[i : ], 'context' : a:context,
+            \ 'statements' : statements[i : ], 'context' : context,
             \ 'script' : a:script,
             \ }
       return 1
@@ -101,15 +103,6 @@ function! vimshell#parser#execute_command(commands, context) "{{{
       let args = [program[1:]] + args
     endif
     return vimshell#helpers#execute_internal_command('h', args, context)
-  elseif a:commands[-1].args[-1] =~ '&$'
-    " Convert to internal "bg" command.
-    let commands[-1].args[-1] = commands[-1].args[-1][:-2]
-    if commands[-1].args[-1] == ''
-      " Delete empty arg.
-      call remove(commands[-1].args, -1)
-    endif
-
-    return vimshell#helpers#execute_internal_command('bg', commands, context)
   elseif len(a:commands) > 1
     if a:commands[-1].args[0] == 'less'
       " Execute less(Syntax sugar).
@@ -238,10 +231,13 @@ function! vimshell#parser#execute_continuation(is_insert) "{{{
 
   if b:interactive.syntax !=# &filetype
     " Set highlight.
-    let start = searchpos(context.prompt_pattern, 'bWn')[0]
+    let start = searchpos(
+          \ b:vimshell.context.prompt_pattern, 'bWn')[0]
     if start > 0
-      call s:highlight_with(start + 1, printf('"\ze\%%(^\[%%\]\|%s\)"',
-            \ context.prompt_pattern), b:interactive.syntax)
+      call s:highlight_with(start + 1,
+            \ printf('"\ze\%%(^\[%%\]\|%s\)"',
+            \        b:vimshell.context.prompt_pattern),
+            \ b:interactive.syntax)
     endif
 
     let b:interactive.syntax = &filetype
@@ -265,6 +261,16 @@ function! s:execute_statement(statement, context) "{{{
     let fd = { 'stdin' : '', 'stdout' : '', 'stderr' : '' }
     let commands = [ { 'args' :
           \ split(substitute(statement, '^:', 'vexe ', '')), 'fd' : fd } ]
+  elseif statement =~ '&$'
+    " Convert to internal "bg" command.
+    let commands = vimproc#parser#parse_pipe(statement)
+    let commands[-1].args[-1] = commands[-1].args[-1][:-2]
+    if commands[-1].args[-1] == ''
+      " Delete empty arg.
+      call remove(commands[-1].args, -1)
+    endif
+
+    call insert(commands[-1].args, 'bg')
   elseif has_key(internal_commands, program)
         \ && internal_commands[program].kind ==# 'special'
     " Special commands.

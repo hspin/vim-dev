@@ -51,8 +51,7 @@ function! neosnippet#helpers#get_snippets() "{{{
   let snippets = copy(neosnippet.snippets)
   for filetype in s:get_sources_filetypes(neosnippet#helpers#get_filetype())
     call neosnippet#commands#_make_cache(filetype)
-    call extend(snippets,
-          \ neosnippet#variables#snippets()[filetype], 'keep')
+    call extend(snippets, neosnippet#variables#snippets()[filetype])
   endfor
 
   let cur_text = neosnippet#util#get_cur_text()
@@ -66,7 +65,16 @@ function! neosnippet#helpers#get_snippets() "{{{
 
   call filter(snippets, "cur_text =~# get(v:val, 'regexp', '')")
 
+  if exists('b:neosnippet_disable_snippet_triggers')
+    call filter(snippets,
+          \ "index(b:neosnippet_disable_snippet_triggers, v:val.word) < 0")
+  endif
+
   return snippets
+endfunction"}}}
+function! neosnippet#helpers#get_completion_snippets() "{{{
+  return filter(neosnippet#helpers#get_snippets(),
+        \ "!get(v:val.options, 'oneshot', 0)")
 endfunction"}}}
 
 function! neosnippet#helpers#get_snippets_directory() "{{{
@@ -184,12 +192,10 @@ endfunction"}}}
 
 function! s:get_sources_filetypes(filetype) "{{{
   let filetypes =
-        \ exists('*neocomplete#get_source_filetypes') ?
-        \   neocomplete#get_source_filetypes(a:filetype) :
-        \ exists('*neocomplcache#get_source_filetypes') ?
-        \   neocomplcache#get_source_filetypes(a:filetype) :
+        \ exists('*context_filetype#get_filetypes') ?
+        \   context_filetype#get_filetypes(a:filetype) :
         \ split(((a:filetype == '') ? 'nothing' : a:filetype), '\.')
-  return filetypes + ['_']
+  return ['_'] + filetypes
 endfunction"}}}
 
 let &cpo = s:save_cpo

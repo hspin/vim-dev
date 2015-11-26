@@ -108,7 +108,7 @@ endfunction
 function! emmet#expandAbbrIntelligent(feedkey) abort
   if !emmet#isExpandable()
     return a:feedkey
-  endif 
+  endif
   return "\<plug>(emmet-expand-abbr)"
 endfunction
 
@@ -126,31 +126,52 @@ endfunction
 
 function! emmet#mergeConfig(lhs, rhs) abort
   let [lhs, rhs] = [a:lhs, a:rhs]
-  if type(lhs) ==# 3 && type(rhs) ==# 3
-    let lhs += rhs
-    if len(lhs)
-      call remove(lhs, 0, len(lhs)-1)
+  if type(lhs) ==# 3
+    if type(rhs) ==# 3
+      let lhs += rhs
+      if len(lhs)
+        call remove(lhs, 0, len(lhs)-1)
+      endif
+      for rhi in rhs
+        call add(lhs, rhs[rhi])
+      endfor
+    elseif type(rhs) ==# 4
+      let lhs += map(keys(rhs), '{v:val : rhs[v:val]}')
     endif
-    for rhi in rhs
-      call add(lhs, rhs[rhi])
-    endfor
-  elseif type(lhs) ==# 4 && type(rhs) ==# 4
-    for key in keys(rhs)
-      if type(rhs[key]) ==# 3
-        if !has_key(lhs, key)
-          let lhs[key] = []
+  elseif type(lhs) ==# 4
+    if type(rhs) ==# 3
+      for V in rhs
+        if type(V) != 4
+          continue
         endif
-        let lhs[key] += rhs[key]
-      elseif type(rhs[key]) ==# 4
-        if has_key(lhs, key)
-          call emmet#mergeConfig(lhs[key], rhs[key])
+        for k in keys(V)
+          let lhs[k] = V[k]
+        endfor
+      endfor
+    elseif type(rhs) ==# 4
+      for key in keys(rhs)
+        if type(rhs[key]) ==# 3
+          if !has_key(lhs, key)
+            let lhs[key] = []
+          endif
+          if type(lhs[key]) == 3
+            let lhs[key] += rhs[key]
+          elseif type(lhs[key]) == 4
+            for k in keys(rhs[key])
+              let lhs[key][k] = rhs[key][k]
+            endfor
+          endif
+        elseif type(rhs[key]) ==# 4
+          if has_key(lhs, key)
+            call emmet#mergeConfig(lhs[key], rhs[key])
+          else
+            let lhs[key] = rhs[key]
+          endif
         else
           let lhs[key] = rhs[key]
         endif
-      else
-        let lhs[key] = rhs[key]
-      endif
-    endfor
+      endfor
+    endif
   endif
 endfunction
 
@@ -290,6 +311,10 @@ function! emmet#getResource(type, name, default) abort
   if exists('b:emmet_' . a:name)
     return get(b:, 'emmet_' . a:name)
   endif
+  let global = {}
+  if has_key(s:emmet_settings, '*') && has_key(s:emmet_settings['*'], a:name)
+    let global = extend(global, s:emmet_settings['*'][a:name])
+  endif
 
   for type in split(a:type, '\.')
     if !has_key(s:emmet_settings, type)
@@ -318,16 +343,24 @@ function! emmet#getResource(type, name, default) abort
     if has_key(s:emmet_settings[type], a:name)
       if type(ret) ==# 3 || type(ret) ==# 4
         call emmet#mergeConfig(ret, s:emmet_settings[type][a:name])
+        return extend(global, ret)
       else
-        let ret = s:emmet_settings[type][a:name]
+        return s:emmet_settings[type][a:name]
       endif
     endif
     if !empty(ret)
+      if type(ret) ==# 3 || type(ret) ==# 4
+        let ret = extend(global, ret)
+      endif
       return ret
     endif
   endfor
 
-  return a:default
+  let ret = a:default
+  if type(ret) ==# 3 || type(ret) ==# 4
+    let ret = extend(global, ret)
+  endif
+  return ret
 endfunction
 
 function! emmet#getFileType(...) abort
@@ -496,8 +529,12 @@ function! emmet#expandAbbr(mode, abbr) range abort
         let spl = ''
       endif
       let items = emmet#parseIntoTree(query, type).child
+      let itemno = 0
       for item in items
-        let expand .= emmet#toString(item, rtype, 0, filters, 0, indent)
+        let inner = emmet#toString(item, rtype, 0, filters, 0, indent)
+        let inner = substitute(inner, '\$#', '$line'.(itemno*(a:lastline - a:firstline + 1)/len(items)+1).'$', 'g')
+        let expand .= inner
+        let itemno = itemno + 1
       endfor
       if emmet#useFilter(filters, 'e')
         let expand = substitute(expand, '&', '\&amp;', 'g')
@@ -674,7 +711,7 @@ function! emmet#expandAbbr(mode, abbr) range abort
   if g:emmet_debug > 1
     call getchar()
   endif
-  if search('\ze\$\(cursor\|select\)\$')
+  if search('\ze\$\(cursor\|select\)\$', 'c')
     let oldselection = &selection
     let &selection = 'inclusive'
     if foldclosed(line('.')) !=# -1
@@ -682,20 +719,26 @@ function! emmet#expandAbbr(mode, abbr) range abort
     endif
     let pos = emmet#util#getcurpos()
     let use_selection = emmet#getResource(type, 'use_selection', 0)
-    if use_selection && getline('.')[col('.')-1:] =~# '^\$select'
-      let pos[2] += 1
-      silent! s/\$select\$//
-      let next = searchpos('.\ze\$select\$', 'nW')
-      silent! %s/\$\(cursor\|select\)\$//g
-      call emmet#util#selectRegion([pos[1:2], next])
-      return "\<esc>gv"
-    else
-      silent! %s/\$\(cursor\|select\)\$//g
-      silent! call setpos('.', pos)
-      if col('.') < col('$')
-        return "\<right>"
+    try
+      let l:gdefault = &gdefault
+      let &gdefault = 0
+      if use_selection && getline('.')[col('.')-1:] =~# '^\$select'
+        let pos[2] += 1
+        silent! s/\$select\$//
+        let next = searchpos('.\ze\$select\$', 'nW')
+        silent! %s/\$\(cursor\|select\)\$//g
+        call emmet#util#selectRegion([pos[1:2], next])
+        return "\<esc>gv"
+      else
+        silent! %s/\$\(cursor\|select\)\$//g
+        silent! call setpos('.', pos)
+        if col('.') < col('$')
+          return "\<right>"
+        endif
       endif
-    endif
+    finally
+      let &gdefault = l:gdefault
+    endtry
     let &selection = oldselection
   endif
   return ''
@@ -1633,17 +1676,17 @@ let s:emmet_settings = {
 \                    ."</html>",
 \        },
 \        'default_attributes': {
-\            'a': {'href': ''},
-\            'a:link': {'href': 'http://|'},
-\            'a:mail': {'href': 'mailto:|'},
-\            'abbr': {'title': ''},
-\            'acronym': {'title': ''},
-\            'base': {'href': ''},
-\            'bdo': {'dir': ''},
-\            'bdo:r': {'dir': 'rtl'},
-\            'bdo:l': {'dir': 'ltr'},
-\            'del': {'datetime': '${datetime}'},
-\            'ins': {'datetime': '${datetime}'},
+\            'a': [{'href': ''}],
+\            'a:link': [{'href': 'http://|'}],
+\            'a:mail': [{'href': 'mailto:|'}],
+\            'abbr': [{'title': ''}],
+\            'acronym': [{'title': ''}],
+\            'base': [{'href': ''}],
+\            'bdo': [{'dir': ''}],
+\            'bdo:r': [{'dir': 'rtl'}],
+\            'bdo:l': [{'dir': 'ltr'}],
+\            'del': [{'datetime': '${datetime}'}],
+\            'ins': [{'datetime': '${datetime}'}],
 \            'link:css': [{'rel': 'stylesheet'}, g:emmet_html5 ? {} : {'type': 'text/css'}, {'href': '|style.css'}, {'media': 'all'}],
 \            'link:print': [{'rel': 'stylesheet'}, g:emmet_html5 ? {} : {'type': 'text/css'}, {'href': '|print.css'}, {'media': 'print'}],
 \            'link:import': [{'rel': 'import'}, {'href': '|.html'}],
@@ -1656,9 +1699,9 @@ let s:emmet_settings = {
 \            'meta:vp': [{'name': 'viewport'}, {'content': 'width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0'}],
 \            'meta:win': [{'http-equiv': 'Content-Type'}, {'content': 'text/html;charset=Win-1251'}],
 \            'meta:compat': [{'http-equiv': 'X-UA-Compatible'}, {'content': 'IE=7'}],
-\            'style': g:emmet_html5 ? {} : {'type': 'text/css'},
-\            'script': g:emmet_html5 ? {} : {'type': 'text/javascript'},
-\            'script:src': g:emmet_html5 ? {'src': ''} : [{'type': 'text/javascript'}, {'src': ''}],
+\            'style': g:emmet_html5 ? [] : [{'type': 'text/css'}],
+\            'script': [{'src': ''}] + (g:emmet_html5 ? [] : [{'type': 'text/javascript'}]),
+\            'script:src': [{'src': ''}] + (g:emmet_html5 ? [] : [{'type': 'text/javascript'}, {'src': ''}]),
 \            'img': [{'src': ''}, {'alt': ''}],
 \            'iframe': [{'src': ''}, {'frameborder': '0'}],
 \            'embed': [{'src': ''}, {'type': ''}],
@@ -1671,12 +1714,12 @@ let s:emmet_settings = {
 \            'area:r': [{'shape': 'rect'}, {'coords': ''}, {'href': ''}, {'alt': ''}],
 \            'area:p': [{'shape': 'poly'}, {'coords': ''}, {'href': ''}, {'alt': ''}],
 \            'link': [{'rel': 'stylesheet'}, {'href': ''}],
-\            'form': {'action': ''},
-\            'form:get': {'action': '', 'method': 'get'},
-\            'form:post': {'action': '', 'method': 'post'},
-\            'form:upload': {'action': '', 'method': 'post', 'enctype': 'multipart/form-data'},
-\            'label': {'for': ''},
-\            'input': {'type': ''},
+\            'form': [{'action': ''}],
+\            'form:get': [{'action': ''}, {'method': 'get'}],
+\            'form:post': [{'action': ''}, {'method': 'post'}],
+\            'form:upload': [{'action': ''}, {'method': 'post'}, {'enctype': 'multipart/form-data'}],
+\            'label': [{'for': ''}],
+\            'input': [{'type': ''}],
 \            'input:hidden': [{'type': 'hidden'}, {'name': ''}],
 \            'input:h': [{'type': 'hidden'}, {'name': ''}],
 \            'input:text': [{'type': 'text'}, {'name': ''}, {'id': ''}],
@@ -1709,14 +1752,14 @@ let s:emmet_settings = {
 \            'input:button': [{'type': 'button'}, {'value': ''}],
 \            'input:b': [{'type': 'button'}, {'value': ''}],
 \            'select': [{'name': ''}, {'id': ''}],
-\            'option': {'value': ''},
+\            'option': [{'value': ''}],
 \            'textarea': [{'name': ''}, {'id': ''}, {'cols': '30'}, {'rows': '10'}],
-\            'menu:context': {'type': 'context'},
-\            'menu:c': {'type': 'context'},
-\            'menu:toolbar': {'type': 'toolbar'},
-\            'menu:t': {'type': 'toolbar'},
-\            'video': {'src': ''},
-\            'audio': {'src': ''},
+\            'menu:context': [{'type': 'context'}],
+\            'menu:c': [{'type': 'context'}],
+\            'menu:toolbar': [{'type': 'toolbar'}],
+\            'menu:t': [{'type': 'toolbar'}],
+\            'video': [{'src': ''}],
+\            'audio': [{'src': ''}],
 \            'html:xml': [{'xmlns': 'http://www.w3.org/1999/xhtml'}, {'xml:lang': '${lang}'}],
 \        },
 \        'aliases': {
@@ -1786,6 +1829,55 @@ let s:emmet_settings = {
 \    },
 \    'html.django_template': {
 \        'extends': 'html',
+\    },
+\    'jade': {
+\        'indentation': '  ',
+\        'extends': 'html',
+\        'snippets': {
+\            '!!!': "doctype html\n",
+\            '!!!4t': "doctype HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\"\n",
+\            '!!!4s': "doctype HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\"\n",
+\            '!!!xt': "doctype transitional\n",
+\            '!!!xs': "doctype strict\n",
+\            '!!!xxs': "doctype 1.1\n",
+\            'c': "\/\/ |${child}",
+\            'html:4t': "doctype HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\"\n"
+\                    ."html(lang=\"${lang}\")\n"
+\                    ."\thead\n"
+\                    ."\t\tmeta(http-equiv=\"Content-Type\", content=\"text/html;charset=${charset}\")\n"
+\                    ."\t\ttitle\n"
+\                    ."\tbody\n\t\t${child}|",
+\            'html:4s': "doctype HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\"\n"
+\                    ."html(lang=\"${lang}\")\n"
+\                    ."\thead\n"
+\                    ."\t\tmeta(http-equiv=\"Content-Type\", content=\"text/html;charset=${charset}\")\n"
+\                    ."\t\ttitle\n"
+\                    ."\tbody\n\t\t${child}|",
+\            'html:xt': "doctype transitional\n"
+\                    ."html(xmlns=\"http://www.w3.org/1999/xhtml\", xml:lang=\"${lang}\")\n"
+\                    ."\thead\n"
+\                    ."\t\tmeta(http-equiv=\"Content-Type\", content=\"text/html;charset=${charset}\")\n"
+\                    ."\t\ttitle\n"
+\                    ."\tbody\n\t\t${child}|",
+\            'html:xs': "doctype strict\n"
+\                    ."html(xmlns=\"http://www.w3.org/1999/xhtml\", xml:lang=\"${lang}\")\n"
+\                    ."\thead\n"
+\                    ."\t\tmeta(http-equiv=\"Content-Type\", content=\"text/html;charset=${charset}\")\n"
+\                    ."\t\ttitle\n"
+\                    ."\tbody\n\t\t${child}|",
+\            'html:xxs': "doctype 1.1\n"
+\                    ."html(xmlns=\"http://www.w3.org/1999/xhtml\", xml:lang=\"${lang}\")\n"
+\                    ."\thead\n"
+\                    ."\t\tmeta(http-equiv=\"Content-Type\", content=\"text/html;charset=${charset}\")\n"
+\                    ."\t\ttitle\n"
+\                    ."\tbody\n\t\t${child}|",
+\            'html:5': "doctype html\n"
+\                    ."html(lang=\"${lang}\")\n"
+\                    ."\thead\n"
+\                    ."\t\tmeta(charset=\"${charset}\")\n"
+\                    ."\t\ttitle\n"
+\                    ."\tbody\n\t\t${child}|",
+\        },
 \    },
 \    'xsl': {
 \        'extends': 'html',
@@ -1873,7 +1965,7 @@ let s:emmet_settings = {
 \                    ."\t<xsd:element name=\"\" type=\"\"/>\n"
 \                    ."</xsd:schema>\n"
 \        }
-\    }
+\    },
 \}
 
 if exists('g:user_emmet_settings')

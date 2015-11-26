@@ -30,7 +30,7 @@ function! unite#start#standard(sources, ...) "{{{
   " Check command line window.
   if unite#util#is_cmdwin()
     call unite#print_error(
-          \ '[unite.vim] Command line buffer is detected! '.
+          \ 'Command line buffer is detected! '.
           \ 'Please close command line buffer.')
     return
   endif
@@ -67,7 +67,7 @@ function! unite#start#standard(sources, ...) "{{{
   try
     call unite#init#_current_unite(a:sources, context)
   catch /^unite.vim: Invalid /
-    call unite#print_error('[unite.vim] ' . v:exception)
+    call unite#print_error(v:exception)
     return
   endtry
 
@@ -203,6 +203,7 @@ function! unite#start#temporary(sources, ...) "{{{
   endif
   let unite.winnr = unite_save.winnr
   let unite.has_preview_window = unite_save.has_preview_window
+  let unite.prev_winsaveview = unite_save.prev_winsaveview
 
   " Restore current directory.
   execute 'lcd' fnameescape(cwd)
@@ -237,10 +238,10 @@ function! unite#start#vimfiler_check_filetype(sources, ...) "{{{
     elseif type ==# 'directory'
       " nop
     elseif type ==# 'error'
-      call unite#print_error('[unite.vim] ' . info)
+      call unite#print_error(info)
       return []
     else
-      call unite#print_error('[unite.vim] Invalid filetype : ' . type)
+      call unite#print_error('Invalid filetype : ' . type)
     endif
 
     return [type, info]
@@ -315,7 +316,7 @@ function! unite#start#resume(buffer_name, ...) "{{{
   " Check command line window.
   if unite#util#is_cmdwin()
     call unite#print_error(
-          \ '[unite.vim] Command line buffer is detected! '.
+          \ 'Command line buffer is detected! '.
           \ 'Please close command line buffer.')
     return
   endif
@@ -329,6 +330,7 @@ function! unite#start#resume(buffer_name, ...) "{{{
 
   let prev_bufnr = bufnr('%')
   let winnr = winnr()
+  let prev_winsaveview = winsaveview()
   let win_rest_cmd = context.unite__direct_switch ||
         \ unite#helper#get_unite_winnr(context.buffer_name) > 0 ?
         \ '' : winrestcmd()
@@ -348,6 +350,7 @@ function! unite#start#resume(buffer_name, ...) "{{{
   let unite.winnr = winnr
   let unite.prev_bufnr = prev_bufnr
   let unite.prev_winnr = winnr
+  let unite.prev_winsaveview = prev_winsaveview
   if !context.unite__direct_switch
     let unite.win_rest_cmd = win_rest_cmd
   endif

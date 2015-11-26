@@ -65,8 +65,15 @@ function! unite#kinds#jump_list#define() "{{{
       " Open folds.
       normal! zv
       call s:adjust_scroll(s:best_winline())
-      call s:clear_highlight()
+      call unite#view#_clear_match_highlight()
     endfor
+
+    " Add search history
+    let context = unite#get_context()
+    if len(context.input_list) == 1
+          \ && context.input != ''
+      call histadd("search", context.input)
+    endif
   endfunction"}}}
 
   let kind.action_table.preview = {
@@ -176,7 +183,7 @@ function! s:jump(candidate, is_highlight) "{{{
     let line = 1
   endif
   if line !~ '^\d\+$'
-    call unite#print_error('unite: jump_list: Invalid action__line format.')
+    call unite#print_error('jump_list: Invalid action__line format.')
     return
   endif
 
@@ -233,7 +240,7 @@ function! s:jump(candidate, is_highlight) "{{{
       if lnum == start_lnum
         " Not found.
         call unite#print_error(
-              \ "unite: jump_list: Target position is not found.")
+              \ 'jump_list: Target position is not found.')
         call cursor(1, 1)
         return
       endif
@@ -271,7 +278,7 @@ function! s:open_current_line(is_highlight) "{{{
   normal! zv
   normal! zz
   if a:is_highlight
-    call s:clear_highlight()
+    call unite#view#_clear_match_highlight()
     call unite#view#_match_line('Search', line('.'), 10)
   endif
 endfunction"}}}
@@ -303,9 +310,6 @@ function! s:get_bufnr(candidate) "{{{
 endfunction"}}}
 function! s:convert_path(path) "{{{
   return unite#util#substitute_path_separator(fnamemodify(a:path, ':p'))
-endfunction"}}}
-function! s:clear_highlight() "{{{
-  silent! call matchdelete(10)
 endfunction"}}}
 
 let &cpo = s:save_cpo

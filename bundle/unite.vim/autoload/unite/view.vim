@@ -245,6 +245,16 @@ function! unite#view#_redraw(is_force, winnr, is_gather_all) "{{{
     endif
   endtry
 
+  if context.immediately && len(unite.current_candidates) == 1
+    " Immediately action.
+    call unite#action#do(
+          \ context.default_action, [unite.current_candidates[0]])
+
+    " Note: It is workaround
+    " Change updatetime to leave insertmode
+    set updatetime=10
+    stopinsert
+  endif
   if context.auto_preview
     call unite#view#_do_auto_preview()
   endif
@@ -353,9 +363,7 @@ function! unite#view#_change_highlight()  "{{{
       continue
     endif
 
-    let input_list = map(filter(split(input_str, '\\\@<! '),
-          \ "v:val !~ '^[!:]'"),
-          \ "substitute(v:val, '\\\\ ', ' ', 'g')")
+    let input_list = unite#helper#get_input_list(input_str)
 
     for source in filter(copy(unite.sources), "v:val.syntax != ''")
       for matcher in filter(copy(map(filter(
@@ -679,11 +687,6 @@ function! unite#view#_quit(is_force, ...)  "{{{
     else
       startinsert!
     endif
-
-    " Skip next auto completion.
-    if exists('*neocomplcache#skip_next_complete')
-      call neocomplcache#skip_next_complete()
-    endif
   else
     redraw
   endif
@@ -763,7 +766,7 @@ endfunction"}}}
 
 " Message output.
 function! unite#view#_print_error(message) "{{{
-  let message = s:msg2list(a:message)
+  let message = map(s:msg2list(a:message), '"[unite.vim] " . v:val')
   let unite = unite#get_current_unite()
   if !empty(unite)
     let unite.err_msgs += message
@@ -820,7 +823,8 @@ function! unite#view#_redraw_echo(expr) "{{{
     set noruler
 
     let msg = map(s:msg2list(a:expr), "unite#util#truncate_smart(
-          \ v:val, &columns-1, &columns/2, '...')")
+          \ v:val, &columns - 1 + len(v:val) - strdisplaywidth(v:val),
+          \ &columns/2, '...')")
     let height = max([1, &cmdheight])
     for i in range(0, len(msg)-1, height)
       redraw
@@ -843,6 +847,9 @@ function! unite#view#_match_line(highlight, line, id) "{{{
   return exists('*matchaddpos') ?
         \ matchaddpos(a:highlight, [a:line], 10, a:id) :
         \ matchadd(a:highlight, '^\%'.a:line.'l.*', 10, a:id)
+endfunction"}}}
+function! unite#view#_clear_match_highlight() "{{{
+  silent! call matchdelete(10)
 endfunction"}}}
 
 function! unite#view#_get_status_plane_string() "{{{
@@ -934,8 +941,7 @@ function! unite#view#_preview_file(filename) "{{{
   let context = unite#get_context()
   if context.vertical_preview
     let unite_winwidth = winwidth(0)
-    noautocmd silent execute 'vertical pedit!'
-          \ fnameescape(a:filename)
+    silent execute 'vertical pedit!' fnameescape(a:filename)
     wincmd P
     let target_winwidth = (unite_winwidth + winwidth(0)) / 2
     execute 'wincmd p | vert resize ' . target_winwidth
@@ -943,8 +949,7 @@ function! unite#view#_preview_file(filename) "{{{
     let previewheight_save = &previewheight
     try
       let &previewheight = context.previewheight
-      noautocmd silent execute 'pedit!'
-            \ fnameescape(a:filename)
+      silent execute 'pedit!' fnameescape(a:filename)
     finally
       let &previewheight = previewheight_save
     endtry
@@ -960,7 +965,6 @@ function! unite#view#_close_preview_window() "{{{
     if !empty(preview_windows)
       " Close preview window.
       noautocmd pclose!
-
     endif
   endif
 

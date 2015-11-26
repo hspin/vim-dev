@@ -38,6 +38,19 @@ https://github.com/itchyny/lightline.vim
 ![lightline.vim - solarized_light - visual](https://raw.githubusercontent.com/wiki/itchyny/lightline.vim/image/solarized_light/3.png)
 ![lightline.vim - solarized_light - replace](https://raw.githubusercontent.com/wiki/itchyny/lightline.vim/image/solarized_light/4.png)
 
+### PaperColor theme (light)
+
+![lightline.vim - PaperColor - normal](https://raw.githubusercontent.com/wiki/itchyny/lightline.vim/image/PaperColor/1.png)
+![lightline.vim - PaperColor - insert](https://raw.githubusercontent.com/wiki/itchyny/lightline.vim/image/PaperColor/2.png)
+![lightline.vim - PaperColor - visual](https://raw.githubusercontent.com/wiki/itchyny/lightline.vim/image/PaperColor/3.png)
+![lightline.vim - PaperColor - replace](https://raw.githubusercontent.com/wiki/itchyny/lightline.vim/image/PaperColor/4.png)
+
+### seoul256 theme
+
+![lightline.vim - seoul256 - normal](https://raw.githubusercontent.com/wiki/itchyny/lightline.vim/image/seoul256/1.png)
+![lightline.vim - seoul256 - insert](https://raw.githubusercontent.com/wiki/itchyny/lightline.vim/image/seoul256/2.png)
+![lightline.vim - seoul256 - visual](https://raw.githubusercontent.com/wiki/itchyny/lightline.vim/image/seoul256/3.png)
+![lightline.vim - seoul256 - replace](https://raw.githubusercontent.com/wiki/itchyny/lightline.vim/image/seoul256/4.png)
 
 ### landscape theme (with the patched font)
 
@@ -90,6 +103,13 @@ This software is released under the MIT License, see LICENSE.
 
 2. Install with `:NeoBundleInstall`.
 
+### vim-plug (https://github.com/junegunn/vim-plug)
+1. Add the following configuration to your `.vimrc`.
+
+        Plug 'itchyny/lightline.vim'
+
+2. Install with `:PlugInstall`.
+
 ## Configuration tutorial
 By default, the statusline looks like:
 ![lightline.vim - tutorial](https://raw.githubusercontent.com/wiki/itchyny/lightline.vim/image/tutorial/1.png)
@@ -141,7 +161,7 @@ when saving it you need to add the nested flag to your `autocmd` like so
 ```vim
 augroup reload_vimrc
     autocmd!
-    autocmd bufwritepost $MYVIMRC nested source $MYVIMRC 
+    autocmd bufwritepost $MYVIMRC nested source $MYVIMRC
 augroup END
 ```
 
@@ -462,7 +482,7 @@ endfunction
 ```
 ![lightline.vim - tutorial](https://raw.githubusercontent.com/wiki/itchyny/lightline.vim/image/tutorial/13.png)
 
-Fine and readable! 
+Fine and readable!
 
 
 Finally, you come up with concatenating the three components: the read-only mark, the filename and the modified mark.
@@ -589,8 +609,8 @@ endfunction
 
 function! LightLineFilename()
   return ('' != LightLineReadonly() ? LightLineReadonly() . ' ' : '') .
-        \ (&ft == 'vimfiler' ? vimfiler#get_status_string() : 
-        \  &ft == 'unite' ? unite#get_status_string() : 
+        \ (&ft == 'vimfiler' ? vimfiler#get_status_string() :
+        \  &ft == 'unite' ? unite#get_status_string() :
         \  &ft == 'vimshell' ? vimshell#get_status_string() :
         \ '' != expand('%:t') ? expand('%:t') : '[No Name]') .
         \ ('' != LightLineModified() ? ' ' . LightLineModified() : '')

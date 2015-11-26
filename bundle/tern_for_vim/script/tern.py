@@ -23,7 +23,7 @@ opener = request.build_opener(request.ProxyHandler({}))
 def tern_displayError(err):
   print(str(err))
 
-def tern_makeRequest(port, doc):
+def tern_makeRequest(port, doc, silent=False):
   payload = json.dumps(doc)
   if not PY2:
     payload = payload.encode('utf-8')
@@ -35,7 +35,8 @@ def tern_makeRequest(port, doc):
         result = result.decode('utf-8')
     return json.loads(result)
   except HTTPError as error:
-    tern_displayError(error.read())
+    if not silent:
+      tern_displayError(error.read())
     return None
 
 # Prefixed with _ to influence destruction order. See
@@ -58,6 +59,8 @@ def tern_projectDir():
 
   projectdir = ""
   mydir = vim.eval("expand('%:p:h')")
+  if PY2:
+    mydir = mydir.decode(vim.eval('&encoding'))
   if not os.path.isdir(mydir): return ""
 
   if mydir:
@@ -138,7 +141,7 @@ def tern_killServers():
 def tern_relativeFile():
   filename = vim.eval("expand('%:p')")
   if PY2:
-    filename = filename.decode('utf-8')
+    filename = filename.decode(vim.eval('&encoding'))
   return filename[len(tern_projectDir()) + 1:]
 
 def tern_bufferSlice(buf, pos, end):
@@ -174,7 +177,7 @@ def tern_bufferFragment():
           "text": tern_bufferSlice(buf, start, end),
           "offsetLines": start}
 
-def tern_runCommand(query, pos=None, fragments=True):
+def tern_runCommand(query, pos=None, fragments=True, silent=False):
   if isinstance(query, str): query = {"type": query}
   if (pos is None):
     curRow, curCol = vim.current.window.cursor
@@ -200,7 +203,7 @@ def tern_runCommand(query, pos=None, fragments=True):
 
   data = None
   try:
-    data = tern_makeRequest(port, doc)
+    data = tern_makeRequest(port, doc, silent)
     if data is None: return None
   except:
     pass
@@ -209,10 +212,11 @@ def tern_runCommand(query, pos=None, fragments=True):
     try:
       port, portIsOld = tern_findServer(port)
       if port is None: return
-      data = tern_makeRequest(port, doc)
+      data = tern_makeRequest(port, doc, silent)
       if data is None: return None
     except Exception as e:
-      tern_displayError(e)
+      if not silent:
+        tern_displayError(e)
 
   if sendingFile and vim.eval("b:ternInsertActive") == "0":
     vim.command("let b:ternBufferSentAt = " + str(curSeq))
@@ -222,7 +226,7 @@ def tern_sendBuffer(files=None):
   port, _portIsOld = tern_findServer()
   if port is None: return False
   try:
-    tern_makeRequest(port, {"files": files or [tern_fullBuffer()]})
+    tern_makeRequest(port, {"files": files or [tern_fullBuffer()]}, True)
     return True
   except:
     return False
@@ -320,11 +324,12 @@ def tern_lookupType():
 def tern_lookupArgumentHints(fname, apos):
   curRow, curCol = vim.current.window.cursor
   data = tern_runCommand({"type": "type", "preferFunction": True},
-                         {"line": curRow - 1, "ch": apos})
+                         {"line": curRow - 1, "ch": apos},
+                         True, True)
   if data: tern_echoWrap(data.get("type", ""),name=fname)
 
 def tern_lookupDefinition(cmd):
-  data = tern_runCommand("definition")
+  data = tern_runCommand("definition", fragments=False)
   if data is None: return
 
   if "file" in data:

@@ -88,9 +88,9 @@ COMMANDS 					*neosnippet-commands*
 
 					*:NeoSnippetEdit*
 :NeoSnippetEdit [{options}] [filetype]
-		Opens the snippets for a given [filetype] to edit. It automatically
-		selects the current buffer's filetype unless you specify
-		another one by [filetype].
+		Opens the snippets for a given [filetype] to edit. It
+		automatically selects the current buffer's filetype unless you
+		specify another one by [filetype].
 
 		If the path to [filetype] snippets is a directory, it
 		automatically selects "[filetype].snip" in the [filetype]
@@ -103,6 +103,9 @@ COMMANDS 					*neosnippet-commands*
 		The following parameters can be used as {options} to modify
 		the behavior of the command. Note: You must escape spaces with
 		a backslash "\".
+
+		Note: You must set |g:neosnippet#snippets_directory| before
+		using it.
 
 					*neosnippet-edit-options-vertical*
 		-vertical
@@ -198,9 +201,12 @@ g:neosnippet#disable_runtime_snippets
 				*g:neosnippet#enable_snipmate_compatibility*
 g:neosnippet#enable_snipmate_compatibility
 		If this variable is not 0, neosnippet will enable the snipMate
-		compatibility feature (For example: Filename() function) and
-		load |g:snippets_dir| and snipMate snippets automatically from
+		compatibility features:
+
+		1. Define Filename() function.
+		2. Load |g:snippets_dir| and snipMate snippets files from
 		'runtimepath'.
+		3. Enable file snippets feature in snipMate.
 
 		The default value is 0.
 
@@ -237,6 +243,11 @@ g:neosnippet#data_directory			*g:neosnippet#data_directory*
 		
 		Default value is "$XDG_CACHE_HOME/neosnippet" or
 		expand("~/.cache/neosnippet"); the absolute path of it.
+
+				*b:neosnippet_disable_snippet_triggers*
+b:neosnippet_disable_snippet_triggers
+		Specifies the triggers which disables in the buffer.
+		It is useful to disable some snippet triggers.
 
 ------------------------------------------------------------------------------
 KEY MAPPINGS 					*neosnippet-key-mappings*
@@ -311,6 +322,32 @@ neosnippet#expandable_or_jumpable()
 		\ neosnippet#expandable_or_jumpable() ?
 		\ "\<Plug>(neosnippet_expand_or_jump)" : "\<C-n>"
 <
+						*neosnippet#anonymous()*
+neosnippet#anonymous({snippet})
+		It defines anonymous snippet.
+		{snippet} is snippet definition.
+		{options} is snippet option.
+		You can expand snippet definition without defining snippet
+		trigger.
+		Note: You can use this function with |map-<expr>|.
+>
+		inoremap <silent> ((
+		\ <C-r>=neosnippet#anonymous('\left(${1}\right)${0}')<CR>
+		" OR
+		inoremap <expr><silent> ((
+		\ neosnippet#anonymous('\left(${1}\right)${0}')
+<
+						*neosnippet#expand()*
+neosnippet#expand({trigger})
+		It expands the snippet trigger.
+		{trigger} is snippet trigger.
+		Note: You can use this function with |map-<expr>|.
+>
+		inoremap <silent> test
+		\ i<C-r>=neosnippet#expand('date_english')<CR>
+		nnoremap <silent><expr> test
+		\ neosnippet#expand('date_english')
+
 ------------------------------------------------------------------------------
 FUNCTIONS					*neosnippet-functions*
 
@@ -330,12 +367,12 @@ EXAMPLES					*neosnippet-examples*
 	xmap <C-k>     <Plug>(neosnippet_expand_target)
 
 	" SuperTab like snippets' behavior.
-	"imap <expr><TAB> neosnippet#expandable_or_jumpable() ?
-	" \ "\<Plug>(neosnippet_expand_or_jump)"
-	" \: pumvisible() ? "\<C-n>" : "\<TAB>"
+	"imap <expr><TAB>
+	" \ pumvisible() ? "\<C-n>" :
+	" \ neosnippet#expandable_or_jumpable() ?
+	" \    "\<Plug>(neosnippet_expand_or_jump)" : "\<TAB>"
 	"smap <expr><TAB> neosnippet#expandable_or_jumpable() ?
-	" \ "\<Plug>(neosnippet_expand_or_jump)"
-	" \: "\<TAB>"
+	" \ "\<Plug>(neosnippet_expand_or_jump)" : "\<TAB>"
 
 	" For conceal markers.
 	if has('conceal')
@@ -771,6 +808,14 @@ neosnippet has many forks, but almost all forked users change default snippet
 files.
 https://github.com/Shougo/neosnippet.vim/network
 If splitted default snippets, users can fork and change it easily.
+
+Q: I want to complete function arguments using neosnippet like clang_complete.
+
+A: Yes, you can.  You can just complete the candidate from completion window
+and expand the candidate as trigger.
+Note: It works in "func(arg1, arg2, ...)" prototypes only.
+Note: It is experiental feature.
+Note: |v:completed_item| feature is needed.
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:noet:fen:noet:

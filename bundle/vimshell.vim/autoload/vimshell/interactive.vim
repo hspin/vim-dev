@@ -667,7 +667,7 @@ function! s:check_all_output(is_hold) "{{{
   let updated = 0
 
   if mode() ==# 'n'
-    for bufnr in filter(map(range(1, winnr('$')), 'winbufnr(v:val)'),
+    for bufnr in filter(range(1, bufnr('$')),
         \ "type(getbufvar(v:val, 'interactive')) == type({})")
       let interactive = getbufvar(bufnr, 'interactive')
       let updated = 1
@@ -695,12 +695,12 @@ function! s:check_all_output(is_hold) "{{{
     endif
 
     " Ignore key sequences.
-    if mode() ==# 'n'
-      call feedkeys("g\<ESC>" . (v:count > 0 ? v:count : ''), 'n')
-    elseif mode() ==# 'i'
-      if exists('b:interactive') &&
-            \ !empty(b:interactive.process)
-            \ && b:interactive.process.is_valid
+    if exists('b:interactive') &&
+          \ !empty(b:interactive.process)
+          \ && b:interactive.process.is_valid
+      if mode() ==# 'n'
+        call feedkeys("g\<ESC>" . (v:count > 0 ? v:count : ''), 'n')
+      elseif mode() ==# 'i'
         let is_complete_hold = vimshell#util#is_complete_hold()
         if a:is_hold != is_complete_hold
           setlocal modifiable
@@ -791,7 +791,8 @@ function! s:check_output(interactive, bufnr, bufnr_save) "{{{
     endif
   endif
 
-  if !is_last_line && pos != getpos('.')
+  if (!is_last_line || vimshell#interactive#get_cur_text() != '')
+        \ && pos != getpos('.')
         \ && exists('b:interactive')
         \ && b:interactive.process.is_valid
     call setpos('.', pos)
