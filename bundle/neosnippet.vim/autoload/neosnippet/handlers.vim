@@ -28,62 +28,18 @@ set cpo&vim
 
 function! neosnippet#handlers#_complete_done() "{{{
   if empty(v:completed_item)
+        \ || !g:neosnippet#enable_completed_snippet
+        \ || s:is_auto_pairs()
     return
   endif
 
-  let snippets = neosnippet#helpers#get_snippets()
-  if has_key(snippets, v:completed_item.word)
-        \ && !get(snippets[v:completed_item.word], 'oneshot', 0)
-    " Don't overwrite exists snippets
+  let snippet = neosnippet#parser#_get_completed_snippet(v:completed_item)
+  if snippet == ''
     return
   endif
 
-  let item = v:completed_item
-
-  let abbr = (item.abbr != '') ? item.abbr : item.word
-  if len(item.menu) > 5
-    " Combine menu.
-    let abbr .= ' ' . item.menu
-  endif
-
-  if item.info != ''
-    let abbr = split(item.info, '\n')[0]
-  endif
-
-  if abbr !~ '(.*)'
-    return
-  endif
-
-  " Make snippet arguments
-  let cnt = 1
-  let snippet = item.word
-  if snippet !~ '()\?$'
-    let snippet .= '('
-  endif
-
-  for arg in split(substitute(neosnippet#handlers#_get_in_paren(abbr),
-        \ '(\zs.\{-}\ze)', '', 'g'), '[^[]\zs\s*,\s*')
-    if cnt != 1
-      let snippet .= ', '
-    endif
-    let snippet .= printf('${%d:#:%s}', cnt, escape(arg, '{}'))
-    let cnt += 1
-  endfor
-  if snippet !~ ')$'
-    let snippet .= ')'
-  endif
-  let snippet .= '${0}'
-
-  let options = neosnippet#parser#_initialize_snippet_options()
-  let options.word = 1
-  let options.oneshot = 1
-
-  let neosnippet = neosnippet#variables#current_neosnippet()
-  let trigger = item.word
-  let neosnippet.snippets[trigger] =
-        \ neosnippet#parser#_initialize_snippet(
-        \   { 'name' : trigger, 'word' : snippet, 'options' : options },
-        \   '', 0, '', trigger)
+  let [cur_text, col, _] = neosnippet#mappings#_pre_trigger()
+  call neosnippet#view#_insert(snippet, {}, cur_text, col)
 endfunction"}}}
 
 function! neosnippet#handlers#_cursor_moved() "{{{
@@ -98,32 +54,27 @@ function! neosnippet#handlers#_cursor_moved() "{{{
   let expand_info = expand_stack[-1]
   if expand_info.begin_line == expand_info.end_line
         \ && line('.') != expand_info.begin_line
-    call neosnippet#commands#_clear_markers()
+    call neosnippet#view#_clear_markers(expand_info)
   endif
 endfunction"}}}
 
-function! neosnippet#handlers#_get_in_paren(str) abort "{{{
-  let s = ''
-  let level = 0
-  for c in split(a:str, '\zs')
-    if c == '('
-      let level += 1
+function! neosnippet#handlers#_all_clear_markers() "{{{
+  let pos = getpos('.')
 
-      if level == 1
-        continue
-      endif
-    elseif c == ')'
-      if level == 1
-        return s
-      else
-        let level -= 1
-      endif
-    endif
+  try
+    while !empty(neosnippet#variables#expand_stack())
+      call neosnippet#view#_clear_markers(
+            \ neosnippet#variables#expand_stack()[-1])
+    endwhile
+  finally
+    stopinsert
 
-    let s .= c
-  endfor
+    call setpos('.', pos)
+  endtry
+endfunction"}}}
 
-  return s
+function! s:is_auto_pairs() abort "{{{
+  return get(g:, 'neopairs#enable', 0)
 endfunction"}}}
 
 let &cpo = s:save_cpo

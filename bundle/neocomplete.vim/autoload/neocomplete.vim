@@ -71,6 +71,8 @@ let g:neocomplete#skip_auto_completion_time =
       \ get(g:, 'neocomplete#skip_auto_completion_time', '0.3')
 let g:neocomplete#enable_auto_close_preview =
       \ get(g:, 'neocomplete#enable_auto_close_preview', 0)
+let g:neocomplete#enable_auto_pairs =
+      \ get(g:, 'neocomplete#enable_auto_pairs', 1)
 let g:neocomplete#fallback_mappings =
       \ get(g:, 'neocomplete#fallback_mappings', [])
 let g:neocomplete#sources =
@@ -253,24 +255,6 @@ function! neocomplete#get_context_filetype(...) "{{{
   endif
 
   return neocomplete.context_filetype
-endfunction"}}}
-function! neocomplete#get_context_filetype_range(...) "{{{
-  if !neocomplete#is_enabled()
-    return [[1, 1], [line('$'), len(getline('$'))+1]]
-  endif
-
-  let neocomplete = neocomplete#get_current_neocomplete()
-
-  if a:0 != 0 || mode() !=# 'i' ||
-        \ neocomplete.context_filetype == ''
-    call neocomplete#context_filetype#set()
-  endif
-
-  if neocomplete.context_filetype ==# &filetype
-    return [[1, 1], [line('$'), len(getline('$'))+1]]
-  endif
-
-  return neocomplete.context_filetype_range
 endfunction"}}}
 function! neocomplete#print_debug(expr) "{{{
   if g:neocomplete#enable_debug

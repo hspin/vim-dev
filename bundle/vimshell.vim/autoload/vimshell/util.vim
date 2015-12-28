@@ -171,15 +171,15 @@ function! vimshell#util#is_cmdwin() "{{{
 endfunction"}}}
 
 function! vimshell#util#is_auto_select() "{{{
-  return get(g:, 'neocomplcache_enable_auto_select', 0) ||
-        \ get(g:, 'neocomplete#enable_auto_select', 0)
+  return get(g:, 'neocomplcache_enable_auto_select', 0)
+        \ || get(g:, 'neocomplete#enable_auto_select', 0)
+        \ || &completeopt =~# 'noinsert'
 endfunction"}}}
 
 function! vimshell#util#is_complete_hold() "{{{
   return (get(g:, 'neocomplcache_enable_cursor_hold_i', 0)
         \ && !get(g:, 'neocomplcache_enable_insert_char_pre', 0)) ||
-        \ (get(g:, 'neocomplete#enable_cursor_hold_i', 0)
-        \ && !get(g:, 'neocomplete#enable_insert_char_pre', 0))
+        \ get(g:, 'neocomplete#enable_cursor_hold_i', 0)
 endfunction"}}}
 
 function! vimshell#util#is_auto_delimiter() "{{{
@@ -250,12 +250,14 @@ function! vimshell#util#glob(pattern, ...) "{{{
     let cwd = getcwd()
     let base = vimshell#util#substitute_path_separator(
           \ fnamemodify(a:pattern, ':h'))
-    execute 'lcd' fnameescape(base)
+    try
+      execute (haslocaldir() ? 'lcd' : 'cd') fnameescape(base)
 
-    let files = map(split(vimshell#util#substitute_path_separator(
-          \ glob('*')), '\n'), "base . '/' . v:val")
-
-    execute 'lcd' fnameescape(cwd)
+      let files = map(split(vimshell#util#substitute_path_separator(
+            \ glob('*')), '\n'), "base . '/' . v:val")
+    finally
+      execute (haslocaldir() ? 'lcd' : 'cd') fnameescape(cwd)
+    endtry
 
     return files
   endif

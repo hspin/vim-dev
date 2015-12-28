@@ -60,6 +60,25 @@ function! emmet#lang#html#parseIntoTree(abbr, type) abort
 
   let settings = emmet#getSettings()
   let indent = emmet#getIndentation(type)
+  let pmap = {
+  \'p': 'span',
+  \'ul': 'li',
+  \'ol': 'li',
+  \'table': 'tr',
+  \'tr': 'td',
+  \'tbody': 'tr',
+  \'thead': 'tr',
+  \'tfoot': 'tr',
+  \'colgroup': 'col',
+  \'select': 'option',
+  \'optgroup': 'option',
+  \'audio': 'source',
+  \'video': 'source',
+  \'object': 'param',
+  \'map': 'area'
+  \}
+  
+  let inlineLevel = split('a,abbr,acronym,applet,b,basefont,bdo,big,br,button,cite,code,del,dfn,em,font,i,iframe,img,input,ins,kbd,label,map,object,q,s,samp,select,small,span,strike,strong,sub,sup,textarea,tt,u,var',',')
 
   " try 'foo' to (foo-x)
   let rabbr = emmet#getExpandos(type, abbr)
@@ -91,7 +110,7 @@ function! emmet#lang#html#parseIntoTree(abbr, type) abort
     endif
     if tag_name =~# '^#'
       let attributes = tag_name . attributes
-      let tag_name = 'div'
+      let tag_name = ''
     endif
     if tag_name =~# '[^!]!$'
       let tag_name = tag_name[:-2]
@@ -99,11 +118,21 @@ function! emmet#lang#html#parseIntoTree(abbr, type) abort
     endif
     if tag_name =~# '^\.'
       let attributes = tag_name . attributes
-      let tag_name = 'div'
+      let tag_name = ''
     endif
     if tag_name =~# '^\[.*\]$'
       let attributes = tag_name . attributes
-      let tag_name = 'div'
+      let tag_name = ''
+    endif
+    if empty(tag_name)
+      let pname = len(parent.child) > 0 ? parent.child[0].name : ''
+      if !empty(pname) && has_key(pmap, pname)
+        let tag_name = pmap[pname]
+      elseif !empty(pname) && index(inlineLevel, pname) > -1
+        let tag_name = 'span'
+      else
+        let tag_name = 'div'
+      endif
     endif
     let basedirect = basevalue[1] ==# '-' ? -1 : 1
     let basevalue = 0 + abs(basevalue[1:])
@@ -134,6 +163,10 @@ function! emmet#lang#html#parseIntoTree(abbr, type) abort
         endwhile
         if use_pipe_for_cursor
           let snippet = substitute(snippet, '|', '${cursor}', 'g')
+        endif
+        " just redirect to expanding
+        if type == 'html' && snippet !~ '^\s*[{\[<]'
+           return emmet#lang#html#parseIntoTree(snippet, a:type)
         endif
         let lines = split(snippet, "\n", 1)
         call map(lines, 'substitute(v:val, "\\(    \\|\\t\\)", escape(indent, "\\\\"), "g")')
@@ -212,7 +245,7 @@ function! emmet#lang#html#parseIntoTree(abbr, type) abort
         endif
         if item[0] ==# '['
           let atts = item[1:-2]
-          if matchstr(atts, '^\s*\zs[0-9a-zA-Z-:]\+\(="[^"]*"\|=''[^'']*''\|=[^ ''"]\+\)') ==# ''
+          if matchstr(atts, '^\s*\zs[0-9a-zA-Z_\-:]\+\(="[^"]*"\|=''[^'']*''\|=[^ ''"]\+\)') ==# ''
             let ks = []
 			if has_key(default_attributes, current.name)
               let dfa = default_attributes[current.name]

@@ -655,7 +655,7 @@ function! unite#view#_quit(is_force, ...)  "{{{
     if winnr('$') != 1 && !unite.context.temporary
           \ && winnr('$') == unite.winmax
       execute unite.win_rest_cmd
-      execute unite.prev_winnr 'wincmd w'
+      noautocmd execute unite.prev_winnr 'wincmd w'
     endif
   else
     call unite#view#_close_preview_window()
@@ -886,13 +886,13 @@ function! unite#view#_get_status_tail_string() "{{{
 endfunction"}}}
 
 function! unite#view#_get_source_name_string(source) "{{{
-  return (a:source.unite__len_candidates == 0) ? '_' :
+  return (a:source.unite__orig_len_candidates == 0) ? '_' :
         \ join(insert(filter(copy(a:source.args),
         \  'type(v:val) <= 1'),
         \   unite#helper#convert_source_name(a:source.name)), ':')
 endfunction"}}}
 function! unite#view#_get_source_candidates_string(source) "{{{
-  return a:source.unite__len_candidates == 0 ? '' :
+  return a:source.unite__orig_len_candidates == 0 ? '' :
         \      a:source.unite__orig_len_candidates ==
         \            a:source.unite__len_candidates ?
         \            '(' . a:source.unite__len_candidates . ')' :
