@@ -160,6 +160,7 @@ nnoremap <leader>t :<C-u>Unite -no-split -start-insert -buffer-name=files file_r
 nnoremap <leader>f :<C-u>Unite -no-split -start-insert -buffer-name=files file<cr>
 nnoremap <leader>b :<C-u>Unite -no-split -start-insert -buffer-name=buffers buffer -quick-match<CR>
 nnoremap <leader>e :<C-u>Unite -no-split -start-insert -buffer-name=buffer  buffer<cr>
+nnoremap <leader>g :<C-u>Unite gista -no-split -start-insert -buffer-name=files file<cr>
 
 nnoremap <leader>y :<C-u>Unite -no-split -buffer-name=yank    history/yank<cr>
 
@@ -184,5 +185,6 @@ let g:unite_source_rec_async_command='ag --nocolor --nogroup --ignore "bower_com
 "}}}
 
 let g:gista#github_user = 'hspin'
+let g:gista#post_private = 1
 
  " vim: set foldenable foldmethod=marker foldlevel=0:
