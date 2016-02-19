@@ -232,6 +232,8 @@ g:neosnippet#enable_conceal_markers
 g:neosnippet#enable_completed_snippet
 		If this variable is not 0, neosnippet will expand the function
 		prototype when |CompleteDone| autocmd.
+		Note: It is disabled if you have installed
+		|neopairs.vim| plugin.
 
 		The default value is 0.
 
@@ -770,7 +772,7 @@ Q: What if I want to expand a snippet trigger after (, [, " etc...:
 
 A: You should use "options word" in the snippet definition. This changes the
 expansion behavior to a word boundary or set
-|g:neosnippet#enable_word_expand|.
+|g:neosnippet#expand_word_boundary|.
 >
 	snippet     date
 	options     word

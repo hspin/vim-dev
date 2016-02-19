@@ -26,7 +26,7 @@
 let s:save_cpo = &cpo
 set cpo&vim
 
-function! neocomplete#handler#_on_moved_i() "{{{
+function! neocomplete#handler#_on_moved_i() abort "{{{
   let neocomplete = neocomplete#get_current_neocomplete()
   if neocomplete.linenr != line('.')
     call neocomplete#helper#clear_result()
@@ -35,7 +35,7 @@ function! neocomplete#handler#_on_moved_i() "{{{
 
   call s:close_preview_window()
 endfunction"}}}
-function! neocomplete#handler#_on_insert_enter() "{{{
+function! neocomplete#handler#_on_insert_enter() abort "{{{
   if !neocomplete#is_enabled()
     return
   endif
@@ -50,7 +50,7 @@ function! neocomplete#handler#_on_insert_enter() "{{{
     foldopen
   endif
 endfunction"}}}
-function! neocomplete#handler#_on_insert_leave() "{{{
+function! neocomplete#handler#_on_insert_leave() abort "{{{
   call neocomplete#helper#clear_result()
 
   call s:close_preview_window()
@@ -59,27 +59,12 @@ function! neocomplete#handler#_on_insert_leave() "{{{
   let neocomplete = neocomplete#get_current_neocomplete()
   let neocomplete.cur_text = ''
 endfunction"}}}
-function! neocomplete#handler#_on_complete_done() "{{{
+function! neocomplete#handler#_on_complete_done() abort "{{{
   let neocomplete = neocomplete#get_current_neocomplete()
 
   if neocomplete.event !=# 'mapping'
-    " Check delimiter pattern.
-    let is_delimiter = 0
-    let filetype = neocomplete#get_context_filetype()
-    let cur_text = neocomplete#get_cur_text(1)
-
-    for delimiter in ['/', '.'] +
-          \ get(g:neocomplete#delimiter_patterns, filetype, [])
-      if stridx(cur_text, delimiter,
-            \ len(cur_text) - len(delimiter)) >= 0
-        let is_delimiter = 1
-        break
-      endif
-    endfor
-
-    if !is_delimiter
-      call neocomplete#mappings#close_popup()
-    endif
+        \ && !s:is_delimiter() && !get(neocomplete, 'refresh', 0)
+    call neocomplete#mappings#close_popup()
   endif
 
   " Use v:completed_item feature.
@@ -99,7 +84,7 @@ function! neocomplete#handler#_on_complete_done() "{{{
     let frequencies[complete_str] += 20
   endif
 endfunction"}}}
-function! neocomplete#handler#_change_update_time() "{{{
+function! neocomplete#handler#_change_update_time() abort "{{{
   if &updatetime > g:neocomplete#cursor_hold_i_time
     " Change updatetime.
     let neocomplete = neocomplete#get_current_neocomplete()
@@ -107,26 +92,33 @@ function! neocomplete#handler#_change_update_time() "{{{
     let &updatetime = g:neocomplete#cursor_hold_i_time
   endif
 endfunction"}}}
-function! neocomplete#handler#_restore_update_time() "{{{
+function! neocomplete#handler#_restore_update_time() abort "{{{
   let neocomplete = neocomplete#get_current_neocomplete()
   if &updatetime < neocomplete.update_time_save
     " Restore updatetime.
     let &updatetime = neocomplete.update_time_save
   endif
 endfunction"}}}
-function! neocomplete#handler#_on_insert_char_pre() "{{{
+function! neocomplete#handler#_on_insert_char_pre() abort "{{{
+  let neocomplete = neocomplete#get_current_neocomplete()
+  let neocomplete.skip_next_complete = 0
+
+  if pumvisible() && g:neocomplete#enable_refresh_always
+    " Auto refresh
+    call feedkeys("\<Plug>(neocomplete_auto_refresh)")
+  endif
+
   if neocomplete#is_cache_disabled()
     return
   endif
 
-  let neocomplete = neocomplete#get_current_neocomplete()
   if neocomplete.old_char != ' ' && v:char == ' ' && v:count == 0
     call s:make_cache_current_line()
   endif
 
   let neocomplete.old_char = v:char
 endfunction"}}}
-function! neocomplete#handler#_on_text_changed() "{{{
+function! neocomplete#handler#_on_text_changed() abort "{{{
   if neocomplete#is_cache_disabled()
     return
   endif
@@ -140,13 +132,15 @@ function! neocomplete#handler#_on_text_changed() "{{{
   endif
 endfunction"}}}
 
-function! neocomplete#handler#_do_auto_complete(event) "{{{
+function! neocomplete#handler#_do_auto_complete(event) abort "{{{
   let neocomplete = neocomplete#get_current_neocomplete()
 
   if (g:neocomplete#enable_cursor_hold_i
         \ && empty(neocomplete.candidates)
         \ && a:event ==# 'CursorMovedI')
         \ || s:check_in_do_auto_complete()
+        \ || (a:event ==# 'InsertEnter'
+        \     && neocomplete.old_cur_text != '')
     return
   endif
 
@@ -205,7 +199,7 @@ function! neocomplete#handler#_do_auto_complete(event) "{{{
   endtry
 endfunction"}}}
 
-function! s:check_in_do_auto_complete() "{{{
+function! s:check_in_do_auto_complete() abort "{{{
   if neocomplete#is_locked()
     return 1
   endif
@@ -215,7 +209,7 @@ function! s:check_in_do_auto_complete() "{{{
     return 1
   endif
 endfunction"}}}
-function! s:is_skip_auto_complete(cur_text) "{{{
+function! s:is_skip_auto_complete(cur_text) abort "{{{
   let neocomplete = neocomplete#get_current_neocomplete()
 
   if (g:neocomplete#lock_iminsert && &l:iminsert)
@@ -227,14 +221,14 @@ function! s:is_skip_auto_complete(cur_text) "{{{
 
   let skip = neocomplete.skip_next_complete
 
-  if !skip || a:cur_text !=# neocomplete.old_cur_text
+  if !skip || s:is_delimiter()
     return 0
   endif
 
   let neocomplete.skip_next_complete = 0
   return skip
 endfunction"}}}
-function! s:close_preview_window() "{{{
+function! s:close_preview_window() abort "{{{
   if g:neocomplete#enable_auto_close_preview
         \ && bufname('%') !=# '[Command Line]'
         \ && winnr('$') != 1 && !&l:previewwindow
@@ -243,7 +237,7 @@ function! s:close_preview_window() "{{{
     pclose!
   endif
 endfunction"}}}
-function! s:make_cache_current_line() "{{{
+function! s:make_cache_current_line() abort "{{{
   let neocomplete = neocomplete#get_current_neocomplete()
   if neocomplete#helper#is_enabled_source('buffer',
         \ neocomplete.context_filetype)
@@ -256,7 +250,7 @@ function! s:make_cache_current_line() "{{{
     call neocomplete#sources#member#make_cache_current_line()
   endif
 endfunction"}}}
-function! s:check_force_omni(cur_text) "{{{
+function! s:check_force_omni(cur_text) abort "{{{
   let cur_text = a:cur_text
   let complete_pos = neocomplete#helper#get_force_omni_complete_pos(cur_text)
 
@@ -268,7 +262,7 @@ function! s:check_force_omni(cur_text) "{{{
 
   return complete_pos
 endfunction"}}}
-function! s:check_fallback(cur_text) "{{{
+function! s:check_fallback(cur_text) abort "{{{
   let cur_text = a:cur_text
   let complete_pos = match(cur_text, '\h\w*$')
   let neocomplete = neocomplete#get_current_neocomplete()
@@ -291,7 +285,7 @@ function! s:check_fallback(cur_text) "{{{
   call s:complete_key("\<Plug>(neocomplete_fallback)")
 endfunction"}}}
 
-function! s:complete_key(key) "{{{
+function! s:complete_key(key) abort "{{{
   call neocomplete#helper#complete_configure()
 
   call feedkeys(a:key)
@@ -322,6 +316,23 @@ function! s:indent_current_line() abort "{{{
       break
     endif
   endfor
+endfunction"}}}
+function! s:is_delimiter() abort "{{{
+  " Check delimiter pattern.
+  let is_delimiter = 0
+  let filetype = neocomplete#get_context_filetype()
+  let cur_text = neocomplete#get_cur_text(1)
+
+  for delimiter in ['/', '.'] +
+        \ get(g:neocomplete#delimiter_patterns, filetype, [])
+    if stridx(cur_text, delimiter,
+          \ len(cur_text) - len(delimiter)) >= 0
+      let is_delimiter = 1
+      break
+    endif
+  endfor
+
+  return is_delimiter
 endfunction"}}}
 
 let &cpo = s:save_cpo

@@ -26,18 +26,21 @@
 let s:save_cpo = &cpo
 set cpo&vim
 
-function! vimshell#helpers#get_editor_name() "{{{
+function! vimshell#helpers#get_editor_name() abort "{{{
   if !exists('g:vimshell_editor_command')
     " Set editor command.
     let g:vimshell_editor_command = g:vimshell_cat_command
 
-    if has('clientserver') && (has('gui_running') || has('gui'))
+    if (has('nvim') && executable('nvr'))
+          \ || (has('clientserver') && (has('gui_running') || has('gui')))
       if has('gui_macvim')
         " MacVim check.
-        if executable('/Applications/MacVim.app/Contents/MacOS/Vim')
-          let progname = 'Applications/MacVim.app/Contents/MacOS/Vim'
-        elseif executable(expand('~/Applications/MacVim.app/Contents/MacOS/Vim'))
-          let progname = expand('~/Applications/MacVim.app/Contents/MacOS/Vim')
+        let macvim1 = '/Applications/MacVim.app/Contents/MacOS/Vim'
+        let macvim2 = expand('~/Applications/MacVim.app/Contents/MacOS/Vim')
+        if executable(macvim1)
+          let progname = macvim1
+        elseif executable(macvim2)
+          let progname = macvim2
         else
           echoerr 'You installed MacVim in not default directory!'.
                 \ ' You must set g:vimshell_editor_command manually.'
@@ -46,19 +49,24 @@ function! vimshell#helpers#get_editor_name() "{{{
 
         let progname = '/Applications/MacVim.app/Contents/MacOS/Vim'
       else
-        let progname = has('gui_running') ? v:progname : 'vim'
+        let progname = has('nvim') ? 'nvr' :
+              \ has('gui_running') ? v:progname : 'vim'
       endif
 
-      let progname .= ' -g'
+      if !has('nvim')
+        let progname .= ' -g'
+      endif
 
-      let g:vimshell_editor_command = printf('%s %s --remote-tab-wait-silent',
-            \ progname, (v:servername == '' ? '' : ' --servername='.v:servername))
+      let g:vimshell_editor_command =
+            \ printf('%s %s --remote-tab-wait-silent',
+            \ progname, (v:servername == '' ? '' :
+            \            ' --servername='.v:servername))
     endif
   endif
 
   return g:vimshell_editor_command
 endfunction"}}}
-function! vimshell#helpers#execute_internal_command(command, args, context) "{{{
+function! vimshell#helpers#execute_internal_command(command, args, context) abort "{{{
   if empty(a:context)
     let context = { 'has_head_spaces' : 0, 'is_interactive' : 1 }
   else
@@ -83,7 +91,7 @@ function! vimshell#helpers#execute_internal_command(command, args, context) "{{{
     return internal.execute(a:args, context)
   endif
 endfunction"}}}
-function! vimshell#helpers#imdisable() "{{{
+function! vimshell#helpers#imdisable() abort "{{{
   " Disable input method.
   if exists('g:loaded_eskk') && eskk#is_enabled()
     call eskk#disable()
@@ -93,7 +101,7 @@ function! vimshell#helpers#imdisable() "{{{
     let &l:iminsert = 0
   endif
 endfunction"}}}
-function! vimshell#helpers#get_current_args(...) "{{{
+function! vimshell#helpers#get_current_args(...) abort "{{{
   let cur_text = a:0 == 0 ? vimshell#get_cur_text() : a:1
 
   let statements = vimproc#parser#split_statements(cur_text)
@@ -114,7 +122,7 @@ function! vimshell#helpers#get_current_args(...) "{{{
 
   return args
 endfunction"}}}
-function! vimshell#helpers#split(command) "{{{
+function! vimshell#helpers#split(command) abort "{{{
   let old_pos = [ tabpagenr(), winnr(), bufnr('%'), getpos('.') ]
   if a:command != ''
     let command =
@@ -127,7 +135,7 @@ function! vimshell#helpers#split(command) "{{{
 
   return [new_pos, old_pos]
 endfunction"}}}
-function! vimshell#helpers#restore_pos(pos) "{{{
+function! vimshell#helpers#restore_pos(pos) abort "{{{
   if tabpagenr() != a:pos[0]
     execute 'tabnext' a:pos[0]
   endif
@@ -142,7 +150,7 @@ function! vimshell#helpers#restore_pos(pos) "{{{
 
   call setpos('.', a:pos[3])
 endfunction"}}}
-function! vimshell#helpers#execute(cmdline, ...) "{{{
+function! vimshell#helpers#execute(cmdline, ...) abort "{{{
   if !empty(b:vimshell.continuation)
     " Kill process.
     call vimshell#interactive#hang_up(bufname('%'))
@@ -162,7 +170,7 @@ function! vimshell#helpers#execute(cmdline, ...) "{{{
 
   return b:vimshell.system_variables.status
 endfunction"}}}
-function! vimshell#helpers#execute_async(cmdline, ...) "{{{
+function! vimshell#helpers#execute_async(cmdline, ...) abort "{{{
   if !empty(b:vimshell.continuation)
     " Kill process.
     call vimshell#interactive#hang_up(bufname('%'))
@@ -185,7 +193,7 @@ function! vimshell#helpers#execute_async(cmdline, ...) "{{{
     return 1
   endtry
 endfunction"}}}
-function! vimshell#helpers#get_command_path(program) "{{{
+function! vimshell#helpers#get_command_path(program) abort "{{{
   " Command search.
   try
     return vimproc#get_command_name(a:program)
@@ -194,11 +202,11 @@ function! vimshell#helpers#get_command_path(program) "{{{
     return ''
   endtry
 endfunction"}}}
-function! vimshell#helpers#get_winwidth() "{{{
+function! vimshell#helpers#get_winwidth() abort "{{{
   return winwidth(0) - &l:numberwidth - &l:foldcolumn
 endfunction"}}}
 
-function! vimshell#helpers#set_alias(name, value) "{{{
+function! vimshell#helpers#set_alias(name, value) abort "{{{
   if !exists('b:vimshell')
     let b:vimshell = {}
   endif
@@ -213,10 +221,10 @@ function! vimshell#helpers#set_alias(name, value) "{{{
     let b:vimshell.alias_table[a:name] = a:value
   endif
 endfunction"}}}
-function! vimshell#helpers#get_alias(name) "{{{
+function! vimshell#helpers#get_alias(name) abort "{{{
   return get(b:vimshell.alias_table, a:name, '')
 endfunction"}}}
-function! vimshell#helpers#set_galias(name, value) "{{{
+function! vimshell#helpers#set_galias(name, value) abort "{{{
   if !exists('b:vimshell')
     let b:vimshell = {}
   endif
@@ -231,19 +239,19 @@ function! vimshell#helpers#set_galias(name, value) "{{{
     let b:vimshell.galias_table[a:name] = a:value
   endif
 endfunction"}}}
-function! vimshell#helpers#get_galias(name) "{{{
+function! vimshell#helpers#get_galias(name) abort "{{{
   return get(b:vimshell.galias_table, a:name, '')
 endfunction"}}}
 
-function! vimshell#helpers#get_program_pattern() "{{{
+function! vimshell#helpers#get_program_pattern() abort "{{{
   return
         \'^\s*\%([^[:blank:]]\|\\[^[:alnum:]._-]\)\+\ze\%(\s*\%(=\s*\)\?\)'
 endfunction"}}}
-function! vimshell#helpers#get_alias_pattern() "{{{
+function! vimshell#helpers#get_alias_pattern() abort "{{{
   return '^\s*[[:alnum:].+#_@!%:-]\+'
 endfunction"}}}
 
-function! vimshell#helpers#complete(arglead, cmdline, cursorpos) "{{{
+function! vimshell#helpers#complete(arglead, cmdline, cursorpos) abort "{{{
   let _ = []
 
   " Option names completion.
@@ -260,7 +268,7 @@ function! vimshell#helpers#complete(arglead, cmdline, cursorpos) "{{{
 
   return sort(_)
 endfunction"}}}
-function! vimshell#helpers#vimshell_execute_complete(arglead, cmdline, cursorpos) "{{{
+function! vimshell#helpers#vimshell_execute_complete(arglead, cmdline, cursorpos) abort "{{{
   " Get complete words.
   let cmdline = a:cmdline[len(matchstr(
         \ a:cmdline, vimshell#helpers#get_program_pattern())):]
@@ -274,7 +282,7 @@ function! vimshell#helpers#vimshell_execute_complete(arglead, cmdline, cursorpos
   return map(vimshell#complete#helper#command_args(args), 'v:val.word')
 endfunction"}}}
 
-function! vimshell#helpers#check_cursor_is_end() "{{{
+function! vimshell#helpers#check_cursor_is_end() abort "{{{
   return vimshell#get_cur_line() ==# getline('.')
 endfunction"}}}
 

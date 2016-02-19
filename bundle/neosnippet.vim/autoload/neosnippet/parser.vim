@@ -28,7 +28,7 @@ set cpo&vim
 
 let s:Cache = neosnippet#util#get_vital().import('System.Cache')
 
-function! neosnippet#parser#_parse_snippets(filename) "{{{
+function! neosnippet#parser#_parse_snippets(filename) abort "{{{
   if !filereadable(a:filename)
     call neosnippet#util#print_error(
           \ printf('snippet file "%s" is not found.', a:filename))
@@ -49,7 +49,7 @@ function! neosnippet#parser#_parse_snippets(filename) "{{{
 
   return snippets
 endfunction"}}}
-function! neosnippet#parser#_parse_snippet(filename, trigger) "{{{
+function! neosnippet#parser#_parse_snippet(filename, trigger) abort "{{{
   if !filereadable(a:filename)
     call neosnippet#util#print_error(
           \ printf('snippet file "%s" is not found.', a:filename))
@@ -66,7 +66,7 @@ function! neosnippet#parser#_parse_snippet(filename, trigger) "{{{
         \ snippet_dict, a:filename, 1, '', a:trigger)
 endfunction"}}}
 
-function! s:parse(snippets_file) "{{{
+function! s:parse(snippets_file) abort "{{{
   let dup_check = {}
   let snippet_dict = {}
   let linenr = 1
@@ -138,7 +138,7 @@ function! s:parse(snippets_file) "{{{
   return [snippets, sourced]
 endfunction"}}}
 
-function! s:parse_snippet_name(snippets_file, line, linenr, dup_check) "{{{
+function! s:parse_snippet_name(snippets_file, line, linenr, dup_check) abort "{{{
   " Initialize snippet dict.
   let snippet_dict = {
         \ 'word' : '',
@@ -180,7 +180,7 @@ function! s:parse_snippet_name(snippets_file, line, linenr, dup_check) "{{{
   return snippet_dict
 endfunction"}}}
 
-function! s:add_snippet_attribute(snippets_file, line, linenr, snippet_dict) "{{{
+function! s:add_snippet_attribute(snippets_file, line, linenr, snippet_dict) abort "{{{
   " Allow overriding/setting of the description (abbr) of the snippet.
   " This will override what was set via the snippet line.
   if a:line =~ '^abbr\s'
@@ -221,7 +221,7 @@ function! s:add_snippet_attribute(snippets_file, line, linenr, snippet_dict) "{{
   endif
 endfunction"}}}
 
-function! s:set_snippet_dict(snippet_dict, snippets, dup_check, snippets_file) "{{{
+function! s:set_snippet_dict(snippet_dict, snippets, dup_check, snippets_file) abort "{{{
   if empty(a:snippet_dict)
     return
   endif
@@ -243,7 +243,7 @@ function! s:set_snippet_dict(snippet_dict, snippets, dup_check, snippets_file) "
   endfor
 endfunction"}}}
 
-function! neosnippet#parser#_initialize_snippet(dict, path, line, pattern, name) "{{{
+function! neosnippet#parser#_initialize_snippet(dict, path, line, pattern, name) abort "{{{
   let a:dict.word = substitute(a:dict.word, '\n\+$', '', '')
   if a:dict.word !~ '\n'
         \ && a:dict.word !~
@@ -282,7 +282,7 @@ function! neosnippet#parser#_initialize_snippet(dict, path, line, pattern, name)
   return snippet
 endfunction"}}}
 
-function! neosnippet#parser#_initialize_snippet_options() "{{{
+function! neosnippet#parser#_initialize_snippet_options() abort "{{{
   return {
         \ 'head' : 0,
         \ 'word' :
@@ -292,46 +292,101 @@ function! neosnippet#parser#_initialize_snippet_options() "{{{
         \ }
 endfunction"}}}
 
-function! neosnippet#parser#_get_completed_snippet(completed_item) "{{{
-  let pairs = { '(' : ')', '{' : '}', '"' : '"' }
-  if index(keys(pairs), a:completed_item.word[-1:]) < 0
-    return ''
-  endif
-  let key = a:completed_item.word[-1:]
-  let pair = pairs[key]
-
+function! neosnippet#parser#_get_completed_snippet(completed_item, next_text) abort "{{{
   let item = a:completed_item
 
+  " Set abbr
   let abbr = (item.abbr != '') ? item.abbr : item.word
   if len(item.menu) > 5
     " Combine menu.
     let abbr .= ' ' . item.menu
   endif
-
   if item.info != ''
     let abbr = split(item.info, '\n')[0]
   endif
+  let pairs = neosnippet#util#get_buffer_config(
+      \ &filetype, '',
+      \ 'g:neosnippet#completed_pairs', 'g:neosnippet#_completed_pairs', {})
+  let word_pattern = neosnippet#util#escape_pattern(item.word)
+  let angle_pattern = word_pattern . '<.\+>(.*)'
+  let no_key = index(keys(pairs), item.word[-1:]) < 0
+  if no_key && abbr !~# word_pattern . '\%(<.\+>\)\?(.*)'
+    return ''
+  endif
+
+  let key = no_key ? '(' : item.word[-1:]
+  if a:next_text[:0] ==# key
+    " Disable auto pair
+    return ''
+  endif
+
+  let pair = pairs[key]
 
   " Make snippet arguments
   let cnt = 1
   let snippet = ''
+
+  if no_key && abbr !~# angle_pattern
+    " Auto key
+    let snippet .= key
+  endif
+
+  if empty(filter(values(pairs), 'stridx(abbr, v:val) > 0'))
+    " Pairs not found pattern
+    let snippet .= '${' . cnt . '}'
+    let cnt += 1
+  endif
+
+  if abbr =~# angle_pattern
+    " Add angle analysis
+    let snippet .= '<'
+
+    let args = ''
+    for arg in split(substitute(
+          \ neosnippet#parser#_get_in_paren('<', '>', abbr),
+          \ '<\zs.\{-}\ze>', '', 'g'), '[^[]\zs\s*,\s*')
+      if args != '' && arg !=# '...'
+        let args .= ', '
+      endif
+      let args .= printf('${%d:#:%s%s}',
+            \ cnt, ((args != '' && arg ==# '...') ? ', ' : ''),
+            \ escape(arg, '{}'))
+      let cnt += 1
+    endfor
+    let snippet .= args
+    let snippet .= '>'
+
+    if no_key
+      let snippet .= key
+    endif
+  endif
+
+  let args = ''
   for arg in split(substitute(
         \ neosnippet#parser#_get_in_paren(key, pair, abbr),
-        \ key.'\zs.\{-}\ze'.pair, '', 'g'), '[^[]\zs\s*,\s*')
+        \ key.'\zs.\{-}\ze'.pair . '\|<\zs.\{-}\ze>', '', 'g'),
+        \ '[^[]\zs\s*,\s*')
     if key ==# '(' && arg ==# 'self' && &filetype ==# 'python'
       " Ignore self argument
       continue
     endif
 
-    if cnt != 1
-      let snippet .= ', '
+    if args != '' && arg !=# '...'
+      let args .= ', '
     endif
-    let snippet .= printf('${%d:#:%s}', cnt, escape(arg, '{}'))
+    let args .= printf('${%d:#:%s%s}',
+          \ cnt, ((args != '' && arg ==# '...') ? ', ' : ''),
+          \ escape(arg, '{}'))
     let cnt += 1
   endfor
+  let snippet .= args
+
+  if key != '(' && snippet == ''
+    let snippet .= '${' . cnt . '}'
+    let cnt += 1
+  endif
 
   let snippet .= pair
-
   let snippet .= '${' . cnt . '}'
 
   return snippet
