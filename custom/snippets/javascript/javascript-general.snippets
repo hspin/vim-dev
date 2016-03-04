@@ -1,0 +1,21 @@
+# IIFE wrapper
+snippet iife
+  (function(${1}) {
+    'use strict';
+    ${0:TARGET}
+  })(${2});
+
+snippet key-value
+  ${1:#:value_name}: ${0:#:value},
+
+snippet :f
+  ${1:#:method_name}: function(${2:#:attribute})
+  {
+    ${0:TARGET}
+  }
+
+snippet fun2
+  function(${1}) { ${0:TARGET} };
+
+snippet ele
+  $('${1}')${2:}
