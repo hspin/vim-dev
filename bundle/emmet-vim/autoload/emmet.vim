@@ -49,7 +49,8 @@ function! emmet#getIndentation(...) abort
   elseif has_key(s:emmet_settings.variables, 'indentation')
     let indent = s:emmet_settings.variables.indentation
   else
-    let indent = (&l:expandtab || &l:tabstop !=# &l:shiftwidth) ? repeat(' ', &l:shiftwidth) : "\t"
+    let sw = exists('*shiftwidth') ? shiftwidth() : &l:shiftwidth
+    let indent = (&l:expandtab || &l:tabstop !=# sw) ? repeat(' ', sw) : "\t"
   endif
   return indent
 endfunction
@@ -176,7 +177,7 @@ function! emmet#mergeConfig(lhs, rhs) abort
 endfunction
 
 function! emmet#newNode() abort
-  return { 'name': '', 'attr': {}, 'child': [], 'snippet': '', 'basevalue': 0, 'basedirect': 1, 'multiplier': 1, 'parent': {}, 'value': '', 'pos': 0, 'important': 0, 'attrs_order': ['id', 'class'] }
+  return { 'name': '', 'attr': {}, 'child': [], 'snippet': '', 'basevalue': 0, 'basedirect': 1, 'multiplier': 1, 'parent': {}, 'value': '', 'pos': 0, 'important': 0, 'attrs_order': ['id', 'class'], 'block': 0 }
 endfunction
 
 function! s:itemno(itemno, current) abort
@@ -1890,6 +1891,9 @@ let s:emmet_settings = {
 \                    ."\t\ttitle\n"
 \                    ."\tbody\n\t\t${child}|",
 \        },
+\    },
+\    'pug': {
+\        'extends': 'jade',
 \    },
 \    'xsl': {
 \        'extends': 'html',

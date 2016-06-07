@@ -170,7 +170,6 @@ function! unite#start#temporary(sources, ...) abort "{{{
   let context.auto_preview = 0
   let context.auto_highlight = 0
   let context.unite__is_vimfiler = 0
-  let context.default_action = 'default'
   let context.unite__old_winwidth = 0
   let context.unite__old_winheight = 0
   let context.unite__is_resize = 0
@@ -402,13 +401,18 @@ function! unite#start#resume_from_temporary(context) abort  "{{{
   let buffer_info = a:context.unite__old_buffer_info[0]
   call unite#start#resume(buffer_info.buffer_name,
         \ {'unite__direct_switch' : 1})
-  call setpos('.', buffer_info.pos)
   let a:context.unite__old_buffer_info = a:context.unite__old_buffer_info[1:]
 
   " Overwrite unite.
   let unite = unite#get_current_unite()
   let unite.prev_bufnr = unite_save.prev_bufnr
   let unite.prev_winnr = unite_save.prev_winnr
+
+  " Restore the previous position
+  call setpos('.', buffer_info.pos)
+  if line('.') == unite.prompt_linenr && unite.context.start_insert
+    startinsert!
+  endif
 
   call unite#redraw()
 endfunction"}}}
@@ -476,6 +480,20 @@ function! unite#start#_pos(buffer_name, direction, count) abort "{{{
     execute prev_winnr . 'wincmd w'
   endtry
 endfunction"}}}
+
+function! unite#start#_do_command(cmd)
+  " The step by step is done backwards because, if the command happens to
+  " include or exclude lines in the file, the remaining candidates don't have
+  " its position changed when the default action is applied.
+
+  silent! UniteLast
+  let current_pos = []
+  while current_pos != getpos('.')
+    silent! execute a:cmd
+    let current_pos = getpos('.')
+    silent! UnitePrevious
+  endwhile
+endfunction
 
 function! s:get_candidates(sources, context) abort "{{{
   try

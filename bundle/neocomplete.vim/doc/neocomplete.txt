@@ -254,6 +254,9 @@ SOURCES COMMANDS 				*neocomplete-sources-COMMANDS*
 :NeoCompleteTagMakeCache		*:NeoCompleteTagMakeCache*
 		Make a cache from a tags file in current buffer.
 
+:NeoCompleteMemberMakeCache 			*:NeoCompleteMemberMakeCache*
+		Make a member cache based in current buffer.
+
 ------------------------------------------------------------------------------
 VARIABLES 					*neocomplete-variables*
 
@@ -1065,6 +1068,9 @@ matcher_fuzzy	Fuzzy matching matcher.
 					*neocomplete-filter-matcher_length*
 matcher_length	Input keyword length matcher. It removes candidates which is
 		less than input keyword length.
+
+					*neocomplete-filter-matcher_nothing*
+matcher_nothing	Nothing matcher. It disables the matcher filtering.
 
 					*neocomplete-filter-sorter_rank*
 sorter_rank	Matched rank order sorter.  The higher the matched word is

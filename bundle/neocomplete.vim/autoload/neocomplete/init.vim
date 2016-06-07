@@ -86,8 +86,6 @@ function! neocomplete#init#_autocmds() abort "{{{
           \ call neocomplete#handler#_on_insert_leave()
     autocmd CursorMovedI *
           \ call neocomplete#handler#_on_moved_i()
-    autocmd VimLeavePre *
-          \ call neocomplete#init#disable()
     autocmd InsertCharPre *
           \ call neocomplete#handler#_on_insert_char_pre()
     autocmd TextChangedI *
@@ -481,6 +479,7 @@ function! neocomplete#init#_current_neocomplete() abort "{{{
         \ 'within_comment' : 0,
         \ 'is_auto_complete' : 0,
         \ 'indent_text' : '',
+        \ 'detected_foldmethod' : 0,
         \ 'default_matchers' : neocomplete#init#_filters(
         \  (g:neocomplete#enable_fuzzy_completion ?
         \   ['matcher_fuzzy'] : ['matcher_head'])

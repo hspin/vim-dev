@@ -34,7 +34,7 @@ function! s:validate_gistid(gistid) abort
         \ 'A gist ID cannot be empty',
         \)
   call gista#util#validate#pattern(
-        \ a:gistid, '^\w\{,20}\%(/\w\+\)\?$',
+        \ a:gistid, '^\w\{,32}\%(/\w\+\)\?$',
         \ 'A gist ID "%value" requires to follow "%pattern"'
         \)
 endfunction
@@ -51,7 +51,7 @@ function! s:validate_lookup(client, lookup) abort
     return
   endif
   call gista#util#validate#pattern(
-        \ a:lookup, '^\w*$',
+        \ a:lookup, '^[-0-9a-zA-Z_]*$',
         \ 'A lookup "%value" requires to follow "%pattern"'
         \)
 endfunction

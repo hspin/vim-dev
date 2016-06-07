@@ -1,27 +1,30 @@
 let s:save_cpo = &cpo
 set cpo&vim
 
-function! s:_vital_loaded(V) abort " {{{
+function! s:_vital_loaded(V) abort
   let s:Prelude = a:V.import('Prelude')
   let s:Dict = a:V.import('Data.Dict')
   let s:config = {
-        \ 'debug': 0,
+        \ 'debug': -1,
         \ 'batch': 0,
         \}
-endfunction " }}}
-function! s:_vital_depends() abort " {{{
+endfunction
+
+function! s:_vital_depends() abort
   return [
         \ 'Prelude',
         \ 'Data.Dict',
         \]
-endfunction " }}}
+endfunction
+
 function! s:_ensure_string(x) abort
-  return type(a:x) == type('') ? a:x : string(a:x)
+  return s:Prelude.is_string(a:x) ? a:x : string(a:x)
 endfunction
 
 function! s:get_config() abort
   return deepcopy(s:config)
 endfunction
+
 function! s:set_config(config) abort
   let s:config = extend(s:config, s:Dict.pick(a:config, [
         \ 'debug', 'batch',
@@ -35,9 +38,12 @@ function! s:is_batch() abort
     return s:config.batch
   endif
 endfunction
+
 function! s:is_debug() abort
   if s:Prelude.is_funcref(s:config.debug)
     return s:config.debug()
+  elseif s:config.debug == -1
+    return &verbose
   else
     return s:config.debug
   endif
@@ -53,6 +59,7 @@ function! s:echo(hl, msg) abort
     echohl None
   endtry
 endfunction
+
 function! s:echomsg(hl, msg) abort
   execute 'echohl' a:hl
   try
@@ -63,11 +70,13 @@ function! s:echomsg(hl, msg) abort
     echohl None
   endtry
 endfunction
+
 function! s:input(hl, msg, ...) abort
   if s:is_batch()
     return ''
   endif
   execute 'echohl' a:hl
+  call inputsave()
   try
     if empty(get(a:000, 1, ''))
       return input(a:msg, get(a:000, 0, ''))
@@ -76,17 +85,21 @@ function! s:input(hl, msg, ...) abort
     endif
   finally
     echohl None
+    call inputrestore()
   endtry
 endfunction
+
 function! s:inputlist(hl, textlist) abort
   if s:is_batch()
     return 0
   endif
   execute 'echohl' a:hl
+  call inputsave()
   try
     return inputlist(a:textlist)
   finally
     echohl None
+    call inputrestore()
   endtry
 endfunction
 
@@ -98,32 +111,47 @@ function! s:clear() abort
 endfunction
 " @vimlint(EVL102, 0, l:i)
 
+function! s:title(...) abort
+  call s:echo(
+        \ 'Title',
+        \ join(map(copy(a:000), 's:_ensure_string(v:val)'))
+        \)
+endfunction
+
+function! s:attention(...) abort
+  call s:echo(
+        \ 'WarningMsg',
+        \ join(map(copy(a:000), 's:_ensure_string(v:val)'))
+        \)
+endfunction
+
 function! s:debug(...) abort
   if !s:is_debug()
     return
   endif
   call s:echomsg(
         \ 'Comment',
-        \ join(map(copy(a:000), 's:_ensure_string(v:val)'), "\n")
+        \ join(map(copy(a:000), 's:_ensure_string(v:val)'))
         \)
 endfunction
+
 function! s:info(...) abort
   call s:echomsg(
         \ 'Title',
-        \ join(map(copy(a:000), 's:_ensure_string(v:val)'), "\n")
+        \ join(map(copy(a:000), 's:_ensure_string(v:val)'))
         \)
 endfunction
+
 function! s:warn(...) abort
   call s:echomsg(
         \ 'WarningMsg',
-        \ join(map(copy(a:000), 's:_ensure_string(v:val)'), "\n")
+        \ join(map(copy(a:000), 's:_ensure_string(v:val)'))
         \)
 endfunction
+
 function! s:error(...) abort
-  call s:echomsg(
-        \ 'Error',
-        \ join(map(copy(a:000), 's:_ensure_string(v:val)'), "\n")
-        \)
+  let v:errmsg = join(map(copy(a:000), 's:_ensure_string(v:val)'))
+  call s:echomsg('Error', v:errmsg)
 endfunction
 
 function! s:ask(msg, ...) abort
@@ -139,6 +167,7 @@ function! s:ask(msg, ...) abort
   redraw
   return result
 endfunction
+
 function! s:select(msg, candidates, ...) abort
   let canceled = get(a:000, 0, '')
   if s:is_batch()
@@ -152,6 +181,7 @@ function! s:select(msg, candidates, ...) abort
   redraw
   return result == 0 ? canceled : a:candidates[result-1]
 endfunction
+
 function! s:confirm(msg, ...) abort
   if s:is_batch()
     return 0
@@ -160,7 +190,7 @@ function! s:confirm(msg, ...) abort
         \ 'Question',
         \ printf('%s (y[es]/n[o]): ', a:msg),
         \ get(a:000, 0, ''),
-        \ 'customlist,s:_confirm_complete',
+        \ 'customlist,VitalVimPromptConfirmComplete',
         \)
   while result !~? '^\%(y\%[es]\|n\%[o]\)$'
     redraw
@@ -179,10 +209,10 @@ function! s:confirm(msg, ...) abort
   redraw
   return result =~? 'y\%[es]'
 endfunction
-function! s:_confirm_complete(arglead, cmdline, cursorpos) abort
-  return filter(['yes', 'no'], 'v:val =~# "^" . a:arglead')
+
+function! VitalVimPromptConfirmComplete(arglead, cmdline, cursorpos) abort
+  return filter(['yes', 'no'], 'v:val =~# ''^'' . a:arglead')
 endfunction
 
 let &cpo = s:save_cpo
 unlet! s:save_cpo
-" vim:set et ts=2 sts=2 sw=2 tw=0 fdm=marker:

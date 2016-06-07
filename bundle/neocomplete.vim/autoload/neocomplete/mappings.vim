@@ -77,6 +77,7 @@ function! neocomplete#mappings#auto_complete() abort "{{{
   let neocomplete.candidates = neocomplete#complete#_get_words(
         \ neocomplete.complete_sources, complete_pos, base)
   let neocomplete.complete_str = base
+  let neocomplete.refresh = 0
   if empty(neocomplete.candidates)
     return ''
   endif
@@ -205,10 +206,6 @@ function! neocomplete#mappings#complete_common_string() abort "{{{
         let common_str = common_str[: -2]
       endwhile
     endfor
-
-    if &ignorecase
-      let common_str = tolower(common_str)
-    endif
   finally
     let &ignorecase = ignorecase_save
   endtry

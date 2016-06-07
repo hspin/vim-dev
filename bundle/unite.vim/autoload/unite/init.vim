@@ -190,6 +190,14 @@ function! unite#init#_unite_buffer() abort "{{{
       setlocal norelativenumber
     endif
 
+    if context.split
+      if context.vertical
+        setlocal winfixwidth
+      else
+        setlocal winfixheight
+      endif
+    endif
+
     " Autocommands.
     augroup plugin-unite
       autocmd! * <buffer>
@@ -197,8 +205,6 @@ function! unite#init#_unite_buffer() abort "{{{
             \ call unite#handlers#_on_insert_enter()
       autocmd InsertLeave <buffer>
             \ call unite#handlers#_on_insert_leave()
-      autocmd CursorHoldI <buffer>
-            \ call unite#handlers#_on_cursor_hold_i()
       autocmd CursorMovedI <buffer>
             \ call unite#handlers#_on_cursor_moved_i()
       autocmd CursorMoved,CursorMovedI <buffer>  nested
@@ -218,6 +224,12 @@ function! unite#init#_unite_buffer() abort "{{{
       " Enable auto narrow feature.
       autocmd plugin-unite TextChanged <buffer>
             \ call unite#handlers#_on_text_changed()
+    endif
+    if !has('timers')
+      autocmd plugin-unite CursorHoldI <buffer>
+            \ call unite#handlers#_on_cursor_hold_i()
+    else
+      call unite#handlers#_init_timer()
     endif
 
     if context.prompt != ''
@@ -296,8 +308,7 @@ function! unite#init#_current_unite(sources, context) abort "{{{
         \ (exists('b:unite') && !context.split) ?
         \ b:unite.prev_bufnr : bufnr('%')
   let unite.prev_pos =
-        \ (exists('b:unite') && !context.split) ?
-        \ b:unite.prev_pos : getpos('.')
+        \ exists('b:unite') ? b:unite.prev_pos : getpos('.')
   let unite.prev_winnr = winnr()
   let unite.prev_winsaveview = winsaveview()
   let unite.prev_line = 0
@@ -468,6 +479,9 @@ endfunction"}}}
 
 function! unite#init#_candidates_source(candidates, source_name) abort "{{{
   let source = unite#variables#loaded_sources(a:source_name)
+  if empty(source)
+    return []
+  endif
 
   let default_candidate = {
         \ 'kind' : source.default_kind,
@@ -540,14 +554,23 @@ function! unite#init#_default_scripts(kind, names) abort "{{{
             \ fnamemodify(v:val, ':t')) < 0")
     endif
 
-    for define in map(files,
-          \ "unite#{a:kind}#{fnamemodify(v:val, ':t:r')}#define()")
-      for dict in filter(unite#util#convert2list(define),
-            \ '!empty(v:val) && !has_key(static[a:kind], v:val.name)')
-        let static[a:kind][dict.name] = dict
+    try
+      for file in files
+        let define = unite#{a:kind}#{fnamemodify(file, ':t:r')}#define()
+        for dict in filter(unite#util#convert2list(define),
+              \ '!empty(v:val) && !has_key(static[a:kind], v:val.name)')
+          let static[a:kind][dict.name] = dict
+        endfor
+        unlet define
       endfor
-      unlet define
-    endfor
+    catch
+      call unite#print_error(v:throwpoint)
+      call unite#print_error(v:exception)
+      call unite#print_error(
+            \ 'Error occurred in source initialization!')
+      call unite#print_error(
+            \ 'Source name is ' . file)
+    endtry
   endfor
 endfunction"}}}
 

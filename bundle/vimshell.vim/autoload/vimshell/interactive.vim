@@ -32,8 +32,6 @@ augroup vimshell
   autocmd VimLeave * call s:vimleave()
   autocmd CursorMovedI *
         \ call s:check_all_output(0)
-  autocmd CursorHold,CursorHoldI *
-        \ call s:check_all_output(1)
   autocmd BufWinEnter,WinEnter *
         \ call s:winenter()
   autocmd BufWinLeave,WinLeave *
@@ -47,6 +45,10 @@ let s:is_insert_char_pre = v:version > 703
 if s:is_insert_char_pre
   autocmd vimshell InsertCharPre *
         \ call s:enable_auto_complete()
+endif
+if !has('timers')
+  autocmd vimshell CursorHold,CursorHoldI *
+        \ call s:check_all_output(1)
 endif
 
 call vimshell#commands#iexe#define()
@@ -302,6 +304,8 @@ function! vimshell#interactive#execute_process_out(is_insert) abort "{{{
   if !s:is_valid(b:interactive)
     return
   endif
+
+  call s:timer_start()
 
   " Check cache.
   let read = b:interactive.stderr_cache
@@ -646,7 +650,7 @@ function! s:check_all_output(is_hold) abort "{{{
   let interactive = {}
   if mode() ==# 'n'
     for bufnr in filter(range(1, bufnr('$')),
-          \ "s:is_valid(getbufvar(v:val, 'interactive'))")
+          \ "type(getbufvar(v:val, 'interactive')) == type({})")
       " Check output.
       call s:check_output(getbufvar(bufnr, 'interactive'),
             \ bufnr, bufnr('%'))
@@ -666,31 +670,11 @@ function! s:check_all_output(is_hold) abort "{{{
     call vimshell#util#enable_auto_complete()
   endif
 
-  if s:is_valid(interactive)
-    if g:vimshell_interactive_update_time > 0
-          \ && &updatetime > g:vimshell_interactive_update_time
-      " Change updatetime.
-      let s:update_time_save = &updatetime
-      let &updatetime = g:vimshell_interactive_update_time
-    endif
-
-    if mode() ==# 'n'
-      call feedkeys("g\<ESC>" . (v:count > 0 ? v:count : ''), 'n')
-    elseif mode() ==# 'i'
-      let is_complete_hold = vimshell#util#is_complete_hold()
-      if a:is_hold != is_complete_hold
-            \ || !has('gui_running') || has('nvim')
-        setlocal modifiable
-        " Prevent screen flick
-        set novisualbell t_vb=
-        call feedkeys("]\<BS>", 'n')
-      endif
-    endif
-  elseif g:vimshell_interactive_update_time > 0
-        \ && &updatetime == g:vimshell_interactive_update_time
-        \ && &filetype !=# 'unite'
-    " Restore updatetime.
-    let &updatetime = s:update_time_save
+  if has('timers') && empty(filter(range(1, bufnr('$')),
+          \ "s:is_valid(getbufvar(v:val, 'interactive'))"))
+    call s:timer_stop()
+  else
+    call s:dummy_output(interactive, a:is_hold)
   endif
 endfunction"}}}
 function! s:check_output(interactive, bufnr, bufnr_save) abort "{{{
@@ -818,10 +802,62 @@ function! s:enable_auto_complete() abort "{{{
     call vimshell#util#enable_auto_complete()
   endif
 endfunction"}}}
+function! s:dummy_output(interactive, is_hold) abort "{{{
+  if s:is_valid(a:interactive)
+    if g:vimshell_interactive_update_time > 0
+          \ && &updatetime > g:vimshell_interactive_update_time
+      " Change updatetime.
+      let s:update_time_save = &updatetime
+      let &updatetime = g:vimshell_interactive_update_time
+    endif
+
+    if mode() ==# 'n'
+      call feedkeys("g\<ESC>" . (v:count > 0 ? v:count : ''), 'n')
+    elseif mode() ==# 'i'
+      let is_complete_hold = vimshell#util#is_complete_hold()
+      if a:is_hold != is_complete_hold
+            \ || !has('gui_running') || has('nvim')
+        setlocal modifiable
+        " Prevent screen flick
+        if has('nvim')
+          " In neovim, t_vb does not work
+          set novisualbell t_vb=
+        else
+          set visualbell t_vb=
+        endif
+        call feedkeys("]\<BS>", 'n')
+      endif
+    endif
+  elseif g:vimshell_interactive_update_time > 0
+        \ && &updatetime == g:vimshell_interactive_update_time
+        \ && &filetype !=# 'unite'
+    " Restore updatetime.
+    let &updatetime = s:update_time_save
+  endif
+endfunction"}}}
+function! s:timer_handler(timer) abort "{{{
+  call s:check_all_output(0)
+endfunction"}}}
+function! s:timer_start() abort "{{{
+  if !exists('s:timer') && has('timers')
+    let s:timer = timer_start(g:vimshell_interactive_update_time,
+          \ function('s:timer_handler'), {'repeat': -1})
+    autocmd vimshell VimLeavePre * call s:timer_stop()
+  endif
+endfunction"}}}
+function! s:timer_stop() abort "{{{
+  if exists('s:timer')
+    call timer_stop(s:timer)
+    unlet s:timer
+  endif
+endfunction"}}}
 
 function! s:winenter() abort "{{{
   if exists('b:interactive')
     call vimshell#terminal#set_title()
+    if !exists('b:vimshell') || !empty('b:vimshell.continuation')
+      call s:timer_start()
+    endif
   endif
 
   call s:resize()

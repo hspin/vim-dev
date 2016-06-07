@@ -4,7 +4,7 @@ Version: 0.0
 Author: itchyny (https://github.com/itchyny)
 License: MIT License
 Repository: https://github.com/itchyny/lightline.vim
-Last Change: 2015/11/04 08:30:43.
+Last Change: 2016/05/26 21:57:34.
 
 CONTENTS					*lightline-contents*
 
@@ -104,12 +104,12 @@ OPTIONS						*lightline-option*
 		    \ 'readonly': '%R',
 		    \ 'charvalue': '%b',
 		    \ 'charvaluehex': '%B',
-		    \ 'fileencoding': '%{strlen(&fenc)?&fenc:&enc}',
-		    \ 'fileformat': '%{&fileformat}',
-		    \ 'filetype': '%{strlen(&filetype)?&filetype:"no ft"}',
+		    \ 'fileencoding': '%{&fenc!=#""?&fenc:&enc}',
+		    \ 'fileformat': '%{&ff}',
+		    \ 'filetype': '%{&ft!=#""?&ft:"no ft"}',
 		    \ 'percent': '%3p%%',
 		    \ 'percentwin': '%P',
-		    \ 'spell': '%{&spell?&spelllang:"no spell"}',
+		    \ 'spell': '%{&spell?&spelllang:""}',
 		    \ 'lineinfo': '%3l:%-2v',
 		    \ 'line': '%l',
 		    \ 'column': '%c'
@@ -124,7 +124,8 @@ OPTIONS						*lightline-option*
 		let g:lightline.component_visible_condition = {
 		    \ 'modified': '&modified||!&modifiable',
 		    \ 'readonly': '&readonly',
-		    \ 'paste': '&paste' }
+		    \ 'paste': '&paste',
+		    \ 'spell': '&spell' }
 <
 		Users are recommended to set this option together with the
 		component itself.
@@ -174,14 +175,18 @@ OPTIONS						*lightline-option*
 		|g:lightline.component_expand|. The types are used to specify
 		the color. Specifically, the type raw is used to specify a
 		component which should not be wrapped by item group: %(...%).
->
+		The default value is: >
+
 		let g:lightline.component_type = {
 		    \ 'tabs': 'tabsel',
 		    \ 'close': 'raw' }
 <
 	g:lightline.tab_component		*g:lightline.tab_component*
 		A dictionary for components in one tab.
+		The default value is: >
 
+		let g:lightline.tab_component = {}
+<
 	g:lightline.tab_component_function	*g:lightline.tab_component_function*
 		Another dictionary for components in one tab.
 		A function specified as a tab component takes one argument:
@@ -207,7 +212,8 @@ OPTIONS						*lightline-option*
 		powerline theme.
 
 	g:lightline.mode_map			*g:lightline.mode_map*
-		A dictionary of names for mode.
+		A dictionary of names for the modes. The keys are the return
+		values of |mode()|.
 		The default value is:
 >
 		let g:lightline.mode_map = {
@@ -216,19 +222,18 @@ OPTIONS						*lightline-option*
 		    \ 'R' : 'REPLACE',
 		    \ 'v' : 'VISUAL',
 		    \ 'V' : 'V-LINE',
-		    \ 'c' : 'COMMAND',
 		    \ "\<C-v>": 'V-BLOCK',
+		    \ 'c' : 'COMMAND',
 		    \ 's' : 'SELECT',
 		    \ 'S' : 'S-LINE',
 		    \ "\<C-s>": 'S-BLOCK',
-		    \ '?': '      ' }
+		    \ 't': 'TERMINAL',
+		    \ }
 <
 		When you search a word, you get into the command mode. But if
-		you want to keep the mode indicator as 'NORMAL', add
->
-		let g:lightline.mode_map.c = 'NORMAL'
-<
-		to your .vimrc.
+		you want to keep the mode indicator as 'NORMAL', add >
+		let g:lightline = { 'mode_map': { 'c': 'NORMAL' } }
+<		to your .vimrc.
 
 	g:lightline.separator			*g:lightline.separator*
 	g:lightline.subseparator		*g:lightline.subseparator*
@@ -285,8 +290,8 @@ nice.
 	endfunction
 	function! LightLineFugitive()
 		if exists('*fugitive#head')
-			let _ = fugitive#head()
-			return strlen(_) ? ''._ : ''
+			let branch = fugitive#head()
+			return branch !=# '' ? ''.branch : ''
 		endif
 		return ''
 	endfunction
@@ -310,8 +315,8 @@ look nice.
 	endfunction
 	function! LightLineFugitive()
 		if exists('*fugitive#head')
-			let _ = fugitive#head()
-			return strlen(_) ? '⭠ '._ : ''
+			let branch = fugitive#head()
+			return branch !=# '' ? '⭠ '.branch : ''
 		endif
 		return ''
 	endfunction
@@ -336,7 +341,7 @@ Exposed functions for lightline.vim.
 		Returns the mode of the Vim using |g:lightline.mode_map|.
 
 	lightline#init()			*lightline#init()*
-		Initializes the variable |g:lightline|.
+		Initializes the internal state from |g:lightline|.
 
 	lightline#colorscheme()			*lightline#colorscheme()*
 		Initializes the colorscheme and the highlight groups.
@@ -740,8 +745,8 @@ A nice example for |vim-powerline| font users:
 	endfunction
 	function! LightLineFugitive()
 		if &ft !~? 'vimfiler' && exists('*fugitive#head')
-			let _ = fugitive#head()
-			return strlen(_) ? '⭠ '._ : ''
+			let branch = fugitive#head()
+			return branch !=# '' ? '⭠ '.branch : ''
 		endif
 		return ''
 	endfunction
@@ -786,7 +791,7 @@ For users who uses lots of plugins:
 
 	function! LightLineFilename()
 	  let fname = expand('%:t')
-	  return fname == 'ControlP' ? g:lightline.ctrlp_item :
+	  return fname == 'ControlP' && has_key(g:lightline, 'ctrlp_item') ? g:lightline.ctrlp_item :
 	        \ fname == '__Tagbar__' ? g:lightline.fname :
 	        \ fname =~ '__Gundo\|NERD_tree' ? '' :
 	        \ &ft == 'vimfiler' ? vimfiler#get_status_string() :
@@ -801,8 +806,8 @@ For users who uses lots of plugins:
 	  try
 	    if expand('%:t') !~? 'Tagbar\|Gundo\|NERD' && &ft !~? 'vimfiler' && exists('*fugitive#head')
 	      let mark = ''  " edit here for cool mark
-	      let _ = fugitive#head()
-	      return strlen(_) ? mark._ : ''
+	      let branch = fugitive#head()
+	      return branch !=# '' ? mark.branch : ''
 	    endif
 	  catch
 	  endtry
@@ -814,11 +819,11 @@ For users who uses lots of plugins:
 	endfunction
 
 	function! LightLineFiletype()
-	  return winwidth(0) > 70 ? (strlen(&filetype) ? &filetype : 'no ft') : ''
+	  return winwidth(0) > 70 ? (&filetype !=# '' ? &filetype : 'no ft') : ''
 	endfunction
 
 	function! LightLineFileencoding()
-	  return winwidth(0) > 70 ? (strlen(&fenc) ? &fenc : &enc) : ''
+	  return winwidth(0) > 70 ? (&fenc !=# '' ? &fenc : &enc) : ''
 	endfunction
 
 	function! LightLineMode()
@@ -835,7 +840,7 @@ For users who uses lots of plugins:
 	endfunction
 
 	function! CtrlPMark()
-	  if expand('%:t') =~ 'ControlP'
+	  if expand('%:t') =~ 'ControlP' && has_key(g:lightline, 'ctrlp_item')
 	    call lightline#link('iR'[g:lightline.ctrlp_regex])
 	    return lightline#concatenate([g:lightline.ctrlp_prev, g:lightline.ctrlp_item
 	          \ , g:lightline.ctrlp_next], 0)

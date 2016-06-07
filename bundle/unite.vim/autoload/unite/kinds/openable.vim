@@ -163,6 +163,7 @@ function! s:kind.action_table.persist_open.func(candidate) abort "{{{
 
   call unite#take_action('open', a:candidate)
   let unite.prev_bufnr = bufnr('%')
+  let unite.prev_pos = getpos('.')
 
   if g:unite_kind_openable_persist_open_blink_time != ''
     let left = getpos("'<")
@@ -215,7 +216,9 @@ let s:kind.action_table.switch = {
       \ }
 function! s:kind.action_table.switch.func(candidates) abort "{{{
   for candidate in a:candidates
-    call s:switch(candidate)
+    if s:switch(candidate)
+      call unite#take_action('open', candidate)
+    endif
   endfor
 endfunction"}}}
 
@@ -274,13 +277,11 @@ endfunction"}}}
 function! s:switch(candidate) abort "{{{
   let tabnr = s:search_buffer(a:candidate)
   if tabnr < 0
-    " Not found
     return 1
   endif
 
   execute 'tabnext' tabnr
   execute bufwinnr(a:candidate.action__path) . 'wincmd w'
-  call unite#take_action('open', a:candidate)
 endfunction"}}}
 
 let &cpo = s:save_cpo

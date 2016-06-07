@@ -1,6 +1,7 @@
+let s:bx = '{\%("[^"]*"\|''[^'']*''\|\$#\|\${\w\+}\|\$\+\|{[^{]\+\|[^{}]\)\{-}}'
 let s:mx = '\([+>]\|[<^]\+\)\{-}\s*'
 \     .'\((*\)\{-}\s*'
-\       .'\([@#.]\{-}[a-zA-Z_\!][a-zA-Z0-9:_\!\-$]*\|{\%([^%$}]\+\|\$#\|\${\w\+}\|\$\+\)*}*[ \t\r\n}]*\|\[[^\]]\+\]\)'
+\       .'\([@#.]\{-}[a-zA-Z_\!][a-zA-Z0-9:_\!\-$]*\|' . s:bx . '\|\[[^\]]\+\]\)'
 \       .'\('
 \         .'\%('
 \           .'\%(#{[{}a-zA-Z0-9_\-\$]\+\|#[a-zA-Z0-9_\-\$]\+\)'
@@ -8,7 +9,7 @@ let s:mx = '\([+>]\|[<^]\+\)\{-}\s*'
 \           .'\|\%(\.{[{}a-zA-Z0-9_\-\$]\+\|\.[a-zA-Z0-9_\-\$]\+\)'
 \         .'\)*'
 \       .'\)'
-\       .'\%(\({\%([^$}]\+\|\$#\|\${\w\+}\|\$\+\)*}\+\)\)\{0,1}'
+\       .'\%(\(' . s:bx . '\+\)\)\{0,1}'
 \         .'\%(\(@-\{0,1}[0-9]*\)\{0,1}\*\([0-9]\+\)\)\{0,1}'
 \     .'\(\%()\%(\(@-\{0,1}[0-9]*\)\{0,1}\*[0-9]\+\)\{0,1}\)*\)'
 
@@ -58,7 +59,6 @@ function! emmet#lang#html#parseIntoTree(abbr, type) abort
   endif
   if len(type) == 0 | let type = 'html' | endif
 
-  let settings = emmet#getSettings()
   let indent = emmet#getIndentation(type)
   let pmap = {
   \'p': 'span',
@@ -79,6 +79,11 @@ function! emmet#lang#html#parseIntoTree(abbr, type) abort
   \}
 
   let inlineLevel = split('a,abbr,acronym,applet,b,basefont,bdo,big,br,button,cite,code,del,dfn,em,font,i,iframe,img,input,ins,kbd,label,map,object,q,s,samp,select,small,span,strike,strong,sub,sup,textarea,tt,u,var',',')
+
+  let custom_expands = emmet#getResource(type, 'custom_expands', {})
+  if empty(custom_expands) && has_key(settings, 'custom_expands')
+    let custom_expands = settings['custom_expands']
+  endif
 
   " try 'foo' to (foo-x)
   let rabbr = emmet#getExpandos(type, abbr)
@@ -104,6 +109,7 @@ function! emmet#lang#html#parseIntoTree(abbr, type) abort
     let basevalue = substitute(match, s:mx, '\6', 'ig')
     let multiplier = 0 + substitute(match, s:mx, '\7', 'ig')
     let block_end = substitute(match, s:mx, '\8', 'ig')
+    let custom = ''
     let important = 0
     if len(str) == 0
       break
@@ -124,24 +130,36 @@ function! emmet#lang#html#parseIntoTree(abbr, type) abort
       let attributes = tag_name . attributes
       let tag_name = ''
     endif
+
+    for k in keys(custom_expands)
+      if tag_name =~ k
+        let custom = tag_name
+        let tag_name = ''
+        break
+      endif
+    endfor
+
     if empty(tag_name)
       let pname = len(parent.child) > 0 ? parent.child[0].name : ''
       if !empty(pname) && has_key(pmap, pname)
         let tag_name = pmap[pname]
       elseif !empty(pname) && index(inlineLevel, pname) > -1
         let tag_name = 'span'
-      else
+      elseif len(parent.child) == 0 || len(custom) == 0
         let tag_name = 'div'
+      else
+        let tag_name = custom
       endif
     endif
+
     let basedirect = basevalue[1] ==# '-' ? -1 : 1
     let basevalue = 0 + abs(basevalue[1:])
     if multiplier <= 0 | let multiplier = 1 | endif
 
     " make default node
     let current = emmet#newNode()
-    let current.name = tag_name
 
+    let current.name = tag_name
     let current.important = important
 
     " aliases
@@ -175,14 +193,16 @@ function! emmet#lang#html#parseIntoTree(abbr, type) abort
       endif
     endif
 
-    let custom_expands = emmet#getResource(type, 'custom_expands', {})
-    if empty(custom_expands) && has_key(settings, 'custom_expands')
-      let custom_expands = settings['custom_expands']
-    endif
     for k in keys(custom_expands)
       if tag_name =~# k
-        let current.snippet = '${' . tag_name . '}'
+        let current.snippet = '${' . (empty(custom) ? tag_name : custom) . '}'
         let current.name = ''
+        break
+      elseif custom =~# k
+        let cc = emmet#newNode()
+        let cc.snippet = '${' . custom . '}'
+        let cc.name = ''
+        call add(current.child, cc)
         break
       endif
     endfor
@@ -332,6 +352,7 @@ function! emmet#lang#html#parseIntoTree(abbr, type) abort
       if operator =~# '>'
         let last.pos += 1
       endif
+      let last.block = 1
       for n in range(len(block_start))
         let pos += [last.pos]
       endfor
@@ -354,7 +375,14 @@ function! emmet#lang#html#parseIntoTree(abbr, type) abort
             let last.pos += 1
           endif
         elseif len(n)
-          let cl = last.child
+          let st = 0
+          for nc in range(len(last.child))
+            if last.child[nc].block
+              let st = nc
+              break
+            endif
+          endfor
+          let cl = last.child[st :]
           let cls = []
           for c in range(n[1:])
             for cc in cl
@@ -366,7 +394,11 @@ function! emmet#lang#html#parseIntoTree(abbr, type) abort
             endfor
             let cls += deepcopy(cl)
           endfor
-          let last.child = cls
+          if st > 0
+            let last.child = last.child[:st-1] + cls
+          else
+            let last.child = cls
+          endif
         endif
       endfor
     endif
@@ -482,9 +514,23 @@ function! emmet#lang#html#toString(settings, current, type, inline, filters, ite
           if len(Val) > 0
             let Val .= ' '
           endif
-          if _val =~# '^_'
-            let lead = vals[0]
-            let Val .= lead . _val
+          if _val =~# '_'
+            if _val =~# '^_'
+              if has_key(current.parent.attr, 'class')
+                let lead = current.parent.attr["class"]
+                if _val =~# '^__'
+                  let Val .= lead . _val
+                else
+                  let Val .= lead . ' ' . lead . _val
+                endif
+              else
+                let b = split(vals[0], '_')[0]
+                let Val .= lead . _val
+              endif
+            else
+              let lead = split(vals[0], '_')[0]
+              let Val .= lead . ' ' . _val
+            endif
           elseif _val =~# '^-'
             if len(lead) == 0
               let pattr = current.parent.attr

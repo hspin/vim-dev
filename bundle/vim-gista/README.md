@@ -1,6 +1,6 @@
 vim-gista
 ===============================================================================
-[![Travis CI](https://img.shields.io/travis/lambdalisue/vim-gista/master.svg?style=flat-square&label=Travis%20CI)](https://travis-ci.org/lambdalisue/vim-gista) [![AppVeyor](https://img.shields.io/appveyor/ci/lambdalisue/vim-gista/master.svg?style=flat-square&label=AppVeyor)](https://ci.appveyor.com/project/lambdalisue/vim-gista/branch/master) ![Version 2.3.0](https://img.shields.io/badge/version-2.3.0-yellow.svg?style=flat-square) ![Support Vim 7.4 or above](https://img.shields.io/badge/support-Vim%207.4%20or%20above-yellowgreen.svg?style=flat-square) [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE) [![Doc](https://img.shields.io/badge/doc-%3Ah%20vim--gista-orange.svg?style=flat-square)](doc/vim-gista.txt)
+[![Travis CI](https://img.shields.io/travis/lambdalisue/vim-gista/master.svg?style=flat-square&label=Travis%20CI)](https://travis-ci.org/lambdalisue/vim-gista) [![AppVeyor](https://img.shields.io/appveyor/ci/lambdalisue/vim-gista/master.svg?style=flat-square&label=AppVeyor)](https://ci.appveyor.com/project/lambdalisue/vim-gista/branch/master) ![Version 2.3.3](https://img.shields.io/badge/version-2.3.3-yellow.svg?style=flat-square) ![Support Vim 7.4 or above](https://img.shields.io/badge/support-Vim%207.4%20or%20above-yellowgreen.svg?style=flat-square) [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE) [![Doc](https://img.shields.io/badge/doc-%3Ah%20vim--gista-orange.svg?style=flat-square)](doc/vim-gista.txt) [![Powered by vital.vim](https://img.shields.io/badge/powered%20by-vital.vim-ff69b4.svg?style=flat-square)](https://github.com/vim-jp/vital.vim)
 
 ![Screenshot](img/screenshot.png)
 
@@ -35,20 +35,19 @@ compiled with `+python3` with cURL or wget.
 
 Install
 -------------------------------------------------------------------------------
-Use [neobundle.vim](https://github.com/Shougo/neobundle.vim) or [vim-plug](https://github.com/junegunn/vim-plug) as:
+Use [dein.vim](https://github.com/Shougo/dein.vim) or [vim-plug](https://github.com/junegunn/vim-plug) as:
 
 ```vim
 " vim-plug
 Plug 'lambdalisue/vim-gista'
 
-" neobundle.vim
-NeoBundle 'lambdalisue/vim-gista'
+" dein.vim
+call dein#add('lambdalisue/vim-gista')
 
-" neobundle.vim (Lazy)
-NeoBundleLazy 'lambdalisue/vim-gista', {
-    \ 'on_cmd': ['Gista']
-    \ 'on_func': 'gista#'
-    \}
+" dein.vim (Lazy)
+call dein#add('lambdalisue/vim-gista', {
+    \ 'on_cmd': 'Gista'
+    \})
 ```
 
 Or install the repository into your `runtimepath` manually.
