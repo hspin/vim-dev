@@ -57,27 +57,12 @@ if has('autocmd')
     " This is required to remove signs for global marks that were removed when in another window
     autocmd BufEnter,CmdwinEnter * call signature#sign#Refresh()
 
-    autocmd CursorHold * if g:SignaturePeriodicRefresh
-                       \|  call signature#sign#Refresh()
-                       \|endif
-
-    " To avoid conflicts with NERDTree. Figure out a cleaner way.
-    " Food for thought: If NERDTree creates buffer specific maps, shouldn't it override Signature's maps?
-    autocmd BufEnter,FileType * if (  (&filetype ==? 'nerdtree')
-                             \     || (&filetype ==? 'netrw')
-                             \     )
-                             \|   call signature#utils#Maps('remove')
-                             \| endif
-    autocmd BufLeave * if (  (&filetype ==? 'nerdtree')
-                    \     || (&filetype ==? 'netrw')
-                    \     )
-                    \|   call signature#utils#Maps('create')
-                    \| endif
+    autocmd CursorHold * if (g:SignaturePeriodicRefresh) | call signature#sign#Refresh() | endif
   augroup END
 endif
 
 command! -nargs=0 SignatureToggleSigns     call signature#utils#Toggle()
-command! -nargs=0 SignatureRefresh         call signature#sign#Refresh('force')
+command! -nargs=0 SignatureRefresh         call signature#sign#Refresh(1)
 command! -nargs=? SignatureListBufferMarks call signature#mark#List(0, <args>)
 command! -nargs=? SignatureListGlobalMarks call signature#mark#List(1, <args>)
 command! -nargs=* SignatureListMarkers     call signature#marker#List(<args>)

@@ -6,6 +6,8 @@ DIRS="syntax indent compiler autoload ftplugin ftdetect after/syntax after/inden
 DIRS_BASIC="syntax compiler indent ftdetect after/syntax after/indent after/ftdetect"
 DIRS_ALL="syntax indent compiler autoload ftplugin ftdetect after"
 DIRS_SYNTAX="syntax ftdetect after/syntax after/ftdetect"
+DIRS_JAVASCRIPT="${DIRS} extras"
+DIRS_RM="$DIRS_JAVASCRIPT"
 
 OUTPUT=""
 
@@ -75,7 +77,10 @@ copy_dir() {
 }
 
 concat_ftdetect() {
-  cat ftdetect/* | grep -E '^[^"]' > tmp/polyglot.vim
+  echo "augroup filetypedetect" > tmp/polyglot.vim
+  cat config.vim >> tmp/polyglot.vim
+  for f in ftdetect/*; do (echo '" '"$f"; cat "${f}"; echo) >> tmp/polyglot.vim; done
+  echo "augroup END" >> tmp/polyglot.vim
   rm -f ftdetect/*
   mv tmp/polyglot.vim ftdetect/
 }
@@ -97,6 +102,7 @@ EOF
 }
 
 PACKS="
+  applescript:vim-scripts/applescript.vim
   ansible:pearofducks/ansible-vim
   arduino:sudar/vim-arduino-syntax
   blade:jwalton512/vim-blade
@@ -114,8 +120,8 @@ PACKS="
   dockerfile:honza/dockerfile.vim
   elixir:elixir-lang/vim-elixir
   elm:lambdatoast/elm.vim
-  emberscript:heartsentwined/vim-ember-script
-  emblem:heartsentwined/vim-emblem
+  emberscript:yalesov/vim-ember-script
+  emblem:yalesov/vim-emblem
   erlang:vim-erlang/vim-erlang-runtime
   fish:dag/vim-fish
   git:tpope/vim-git
@@ -128,8 +134,8 @@ PACKS="
   haxe:yaymukund/vim-haxe
   html5:othree/html5.vim
   jasmine:glanotte/vim-jasmine
-  javascript:pangloss/vim-javascript
-  json:sheerun/vim-json
+  javascript:pangloss/vim-javascript:_JAVASCRIPT
+  json:elzr/vim-json
   jst:briancollins/vim-jst
   jsx:mxw/vim-jsx:_ALL
   julia:dcjones/julia-minimalist-vim
@@ -137,6 +143,8 @@ PACKS="
   latex:LaTeX-Box-Team/LaTeX-Box
   less:groenewege/vim-less
   liquid:tpope/vim-liquid
+  livescript:gkz/vim-ls
+  lua:tbastos/vim-lua
   mako:sophacles/vim-bundle-mako
   markdown:plasticboy/vim-markdown:_SYNTAX
   nginx:othree/nginx-contrib-vim
@@ -156,8 +164,10 @@ PACKS="
   puppet:voxpupuli/vim-puppet
   purescript:raichoo/purescript-vim
   python:mitsuhiko/vim-python-combined
+  python-compiler:aliev/vim-compiler-python
   qml:peterhoeg/vim-qml
   r-lang:vim-scripts/R.vim
+  raml:IN3D/vim-raml
   ragel:jneen/ragel.vim
   rspec:sheerun/rspec.vim
   ruby:vim-ruby/vim-ruby
@@ -174,7 +184,7 @@ PACKS="
   tmux:keith/tmux.vim
   tomdoc:wellbredgrapefruit/tomdoc.vim
   toml:cespare/vim-toml
-  twig:evidens/vim-twig
+  twig:lumiliet/vim-twig
   typescript:leafgarland/typescript-vim
   vala:tkztmk/vim-vala
   vbnet:vim-scripts/vbnet.vim
@@ -186,7 +196,7 @@ PACKS="
 "
 
 rm -rf tmp
-rm -rf $DIRS_ALL
+rm -rf $DIRS_RM
 mkdir tmp
 
 printf "Downloading packs..."

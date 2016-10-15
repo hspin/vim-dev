@@ -1,10 +1,10 @@
 if !exists('g:polyglot_disabled') || index(g:polyglot_disabled, 'emblem') == -1
   
 " Language:    emblem
-" Maintainer:  heartsentwined <heartsentwined@cogito-lab.com>
-" URL:         http://github.com/heartsentwined/vim-emblem
-" Version:     1.2.0
-" Last Change: 2013 Apr 22
-" License:     GPL-3.0
+" Maintainer:  Yulij Andreevich Lesov <yalesov@gmail.com>
+" URL:         http://github.com/yalesov/vim-emblem
+" Version:     2.0.1
+" Last Change: 2016 Jul 6
+" License:     ISC
 
 endif

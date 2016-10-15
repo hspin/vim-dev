@@ -23,8 +23,13 @@ A collection of language packs for Vim.
 
 Optionally download one of the [releases](https://github.com/sheerun/vim-polyglot/releases) and unpack it directly under `~/.vim` directory.
 
+NOTE: Not all features of listed language packs are available. We strip them from functionality slowing vim startup in general (for example we ignore `plugins` folder that is loaded regardless of file type, use `ftplugin` instead).
+
+If you need full functionality of any plugin, please use it directly with your plugin manager.
+
 ## Language packs
 
+- [applescript](https://github.com/vim-scripts/applescript.vim) (syntax)
 - [ansible](https://github.com/pearofducks/ansible-vim) (syntax, indent, ftplugin, ftdetect)
 - [arduino](https://github.com/sudar/vim-arduino-syntax) (syntax, indent, ftdetect)
 - [blade](https://github.com/jwalton512/vim-blade) (syntax, indent, ftplugin, ftdetect)
@@ -42,8 +47,8 @@ Optionally download one of the [releases](https://github.com/sheerun/vim-polyglo
 - [dockerfile](https://github.com/honza/dockerfile.vim) (syntax, ftdetect)
 - [elixir](https://github.com/elixir-lang/vim-elixir) (syntax, indent, compiler, ftplugin, ftdetect)
 - [elm](https://github.com/lambdatoast/elm.vim) (syntax, indent, autoload, ftplugin, ftdetect)
-- [emberscript](https://github.com/heartsentwined/vim-ember-script) (syntax, indent, ftplugin, ftdetect)
-- [emblem](https://github.com/heartsentwined/vim-emblem) (syntax, indent, ftplugin, ftdetect)
+- [emberscript](https://github.com/yalesov/vim-ember-script) (syntax, indent, ftplugin, ftdetect)
+- [emblem](https://github.com/yalesov/vim-emblem) (syntax, indent, ftplugin, ftdetect)
 - [erlang](https://github.com/vim-erlang/vim-erlang-runtime) (syntax, indent, ftdetect)
 - [fish](https://github.com/dag/vim-fish) (syntax, indent, compiler, autoload, ftplugin, ftdetect)
 - [git](https://github.com/tpope/vim-git) (syntax, indent, ftplugin, ftdetect)
@@ -56,8 +61,8 @@ Optionally download one of the [releases](https://github.com/sheerun/vim-polyglo
 - [haxe](https://github.com/yaymukund/vim-haxe) (syntax, ftdetect)
 - [html5](https://github.com/othree/html5.vim) (syntax, indent, autoload, ftplugin)
 - [jasmine](https://github.com/glanotte/vim-jasmine) (syntax, ftdetect)
-- [javascript](https://github.com/pangloss/vim-javascript) (syntax, indent, ftplugin, ftdetect)
-- [json](https://github.com/sheerun/vim-json) (syntax, indent, ftdetect)
+- [javascript](https://github.com/pangloss/vim-javascript) (syntax, indent, ftdetect, ftplugin, extras)
+- [json](https://github.com/elzr/vim-json) (syntax, indent, ftplugin, ftdetect)
 - [jst](https://github.com/briancollins/vim-jst) (syntax, indent, ftdetect)
 - [jsx](https://github.com/mxw/vim-jsx) (ftdetect, after)
 - [julia](https://github.com/dcjones/julia-minimalist-vim) (syntax, indent, ftdetect)
@@ -65,6 +70,8 @@ Optionally download one of the [releases](https://github.com/sheerun/vim-polyglo
 - [latex](https://github.com/LaTeX-Box-Team/LaTeX-Box) (syntax, indent, ftplugin)
 - [less](https://github.com/groenewege/vim-less) (syntax, indent, ftplugin, ftdetect)
 - [liquid](https://github.com/tpope/vim-liquid) (syntax, indent, ftplugin, ftdetect)
+- [livescript](https://github.com/gkz/vim-ls) (syntax, indent, compiler, ftplugin, ftdetect)
+- [lua](https://github.com/tbastos/vim-lua) (syntax, indent)
 - [mako](https://github.com/sophacles/vim-bundle-mako) (syntax, indent, ftplugin, ftdetect)
 - [markdown](https://github.com/plasticboy/vim-markdown) (syntax, ftdetect)
 - [nginx](https://github.com/othree/nginx-contrib-vim) (syntax, indent, ftdetect)
@@ -77,15 +84,17 @@ Optionally download one of the [releases](https://github.com/sheerun/vim-polyglo
 - [perl](https://github.com/vim-perl/vim-perl) (syntax, indent, ftplugin, ftdetect)
 - [pgsql](https://github.com/exu/pgsql.vim) (syntax, ftdetect)
 - [php](https://github.com/StanAngeloff/php.vim) (syntax)
-- [plantuml](https://github.com/aklt/plantuml-syntax) (syntax, ftplugin, ftdetect)
+- [plantuml](https://github.com/aklt/plantuml-syntax) (syntax, indent, ftplugin, ftdetect)
 - [powershell](https://github.com/Persistent13/vim-ps1) (syntax, indent, ftplugin, ftdetect)
 - [protobuf](https://github.com/uarun/vim-protobuf) (syntax, indent, ftdetect)
 - [pug](https://github.com/digitaltoad/vim-pug) (syntax, indent, ftplugin, ftdetect)
 - [puppet](https://github.com/voxpupuli/vim-puppet) (syntax, indent, ftplugin, ftdetect)
-- [purescript](https://github.com/raichoo/purescript-vim) (syntax, indent, ftdetect)
+- [purescript](https://github.com/raichoo/purescript-vim) (syntax, indent, ftplugin, ftdetect)
 - [python](https://github.com/mitsuhiko/vim-python-combined) (syntax, indent)
+- [python-compiler](https://github.com/aliev/vim-compiler-python) (compiler, autoload, ftdetect)
 - [qml](https://github.com/peterhoeg/vim-qml) (syntax, indent, ftplugin, ftdetect)
 - [r-lang](https://github.com/vim-scripts/R.vim) (syntax, ftplugin)
+- [raml](https://github.com/IN3D/vim-raml) (syntax, ftplugin, ftdetect)
 - [ragel](https://github.com/jneen/ragel.vim) (syntax)
 - [rspec](https://github.com/sheerun/rspec.vim) (syntax, ftdetect)
 - [ruby](https://github.com/vim-ruby/vim-ruby) (syntax, indent, compiler, autoload, ftplugin, ftdetect)
@@ -102,7 +111,7 @@ Optionally download one of the [releases](https://github.com/sheerun/vim-polyglo
 - [tmux](https://github.com/keith/tmux.vim) (syntax, ftplugin, ftdetect)
 - [tomdoc](https://github.com/wellbredgrapefruit/tomdoc.vim) (syntax)
 - [toml](https://github.com/cespare/vim-toml) (syntax, ftplugin, ftdetect)
-- [twig](https://github.com/evidens/vim-twig) (syntax, ftplugin)
+- [twig](https://github.com/lumiliet/vim-twig) (syntax, indent, ftplugin)
 - [typescript](https://github.com/leafgarland/typescript-vim) (syntax, indent, compiler, ftplugin, ftdetect)
 - [vala](https://github.com/tkztmk/vim-vala) (syntax, indent, ftdetect)
 - [vbnet](https://github.com/vim-scripts/vbnet.vim) (syntax)

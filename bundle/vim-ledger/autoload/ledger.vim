@@ -486,6 +486,18 @@ function! s:ledger_cmd(file, args)
 endf
 " }}}
 
+function! ledger#autocomplete_and_align()
+  if pumvisible()
+    return "\<c-n>"
+    " See http://stackoverflow.com/questions/23323747/vim-vimscript-get-exact-character-under-the-cursor
+  elseif matchstr(getline('.'), '\%' . (col('.')-1) . 'c.') =~ '\d'
+    norm h
+    call ledger#align_amount_at_cursor()
+    return "\<c-o>A"
+  endif
+  return "\<c-x>\<c-o>"
+endf
+
 " Use current line as input to ledger entry and replace with output. If there
 " are errors, they are echoed instead.
 func! ledger#entry()
@@ -509,29 +521,43 @@ endfunc
 " Parameters:
 " file  The file to be processed.
 " args  A string of Ledger command-line arguments.
+"
+" Returns:
+" Ledger's output as a String.
 function! ledger#report(file, args)
   let l:output = systemlist(s:ledger_cmd(a:file, a:args))
   if v:shell_error  " If there are errors, show them in a quickfix/location list.
     call s:quickfix_populate(l:output)
     call s:quickfix_toggle('Errors', 'Unable to parse errors')
-    return
   endif
-  if empty(l:output)
+  return l:output
+endf
+
+" Open the output of a Ledger's command in a new buffer.
+"
+" Parameters:
+" report  A String containing the output of a Ledger's command.
+"
+" Returns:
+" 1 if a new buffer is created; 0 otherwise.
+function! ledger#output(report)
+  if empty(a:report)
     call s:warning_message('No results')
-    return
+    return 0
   endif
   " Open a new buffer to show Ledger's output.
   execute get(s:winpos_map, g:ledger_winpos, "bo new")
-  setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile nowrap
-  call append(0, l:output)
+  setlocal buftype=nofile bufhidden=wipe modifiable nobuflisted noswapfile nowrap
+  call append(0, a:report)
   setlocal nomodifiable
   " Set local mappings to quit window or lose focus.
-  nnoremap <silent> <buffer> <tab> <c-w><c-w>
-  nnoremap <silent> <buffer> q <c-w>c
+  nnoremap <silent> <buffer> <tab> <c-w><c-p>
+  nnoremap <silent> <buffer> q <c-w><c-p>@=winnr("#")<cr><c-w>c
   " Add some coloring to the report
   syntax match LedgerNumber /-\@1<!\d\+\([,.]\d\+\)\+/
   syntax match LedgerNegativeNumber /-\d\+\([,.]\d\+\)\+/
   syntax match LedgerImproperPerc /\d\d\d\+%/
+  return 1
 endf
 
 " Show an arbitrary register report in a quickfix list.

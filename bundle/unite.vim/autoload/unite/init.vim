@@ -42,6 +42,8 @@ let g:unite_redraw_hold_candidates =
       \     (unite#util#has_lua() ? 20000 : 10000))
 let g:unite_enable_auto_select =
       \ get(g:, 'unite_enable_auto_select', 1)
+let g:unite_restore_alternate_file =
+      \ get(g:, 'unite_restore_alternate_file', 1)
 "}}}
 
 function! unite#init#_context(context, ...) abort "{{{
@@ -225,7 +227,7 @@ function! unite#init#_unite_buffer() abort "{{{
       autocmd plugin-unite TextChanged <buffer>
             \ call unite#handlers#_on_text_changed()
     endif
-    if !has('timers')
+    if !unite#util#has_timers()
       autocmd plugin-unite CursorHoldI <buffer>
             \ call unite#handlers#_on_cursor_hold_i()
     else
@@ -309,6 +311,8 @@ function! unite#init#_current_unite(sources, context) abort "{{{
         \ b:unite.prev_bufnr : bufnr('%')
   let unite.prev_pos =
         \ exists('b:unite') ? b:unite.prev_pos : getpos('.')
+  let unite.alternate_bufnr =
+        \ exists('b:unite') ? b:unite.alternate_bufnr : bufnr('#')
   let unite.prev_winnr = winnr()
   let unite.prev_winsaveview = winsaveview()
   let unite.prev_line = 0

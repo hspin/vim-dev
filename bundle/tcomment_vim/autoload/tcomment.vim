@@ -2,8 +2,8 @@
 " @Website:     http://www.vim.org/account/profile.php?user_id=4037
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
 " @Created:     2007-09-17.
-" @Last Change: 2016-06-16.
-" @Revision:    1855
+" @Last Change: 2016-07-03.
+" @Revision:    1857
 
 " call tlog#Log('Load: '. expand('<sfile>')) " vimtlib-sfile
 if exists(':Tlibtrace') != 2
@@ -173,28 +173,30 @@ if !exists('g:tcommentSyntaxMap')
     " mapped onto the corresponding filetype.
     " :read: let g:tcommentSyntaxMap = {...}   "{{{2
     let g:tcommentSyntaxMap = {
-            \ 'erubyExpression':   'ruby',
-            \ 'vimMzSchemeRegion': 'scheme',
-            \ 'vimPerlRegion':     'perl',
-            \ 'vimPythonRegion':   'python',
-            \ 'vimRubyRegion':     'ruby',
-            \ 'vimTclRegion':      'tcl',
-            \ 'Delimiter': {
-            \     'filetype': {
-            \         'php': 'php',
-            \     },
-            \ },
-            \ 'phpRegionDelimiter': {
-            \     'prevnonblank': [
-            \         {'match': '<?php', 'filetype': 'php'},
-            \         {'match': '?>', 'filetype': 'html'},
-            \     ],
-            \     'nextnonblank': [
-            \         {'match': '?>', 'filetype': 'php'},
-            \         {'match': '<?php', 'filetype': 'html'},
-            \     ],
-            \ },
-            \ }
+                \ 'bladeEcho':          'php',
+                \ 'bladePhpParenBlock': 'php',
+                \ 'erubyExpression':    'ruby',
+                \ 'vimMzSchemeRegion':  'scheme',
+                \ 'vimPerlRegion':      'perl',
+                \ 'vimPythonRegion':    'python',
+                \ 'vimRubyRegion':      'ruby',
+                \ 'vimTclRegion':       'tcl',
+                \ 'Delimiter': {
+                \     'filetype': {
+                \         'php': 'php',
+                \     },
+                \ },
+                \ 'phpRegionDelimiter': {
+                \     'prevnonblank': [
+                \         {'match': '<?php', 'filetype': 'php'},
+                \         {'match': '?>', 'filetype': 'html'},
+                \     ],
+                \     'nextnonblank': [
+                \         {'match': '?>', 'filetype': 'php'},
+                \         {'match': '<?php', 'filetype': 'html'},
+                \     ],
+                \ },
+                \ }
 endif
 
 if !exists('g:tcomment#replacements_c')
@@ -591,6 +593,9 @@ call tcomment#DefineType('tex',              '%% %s'            )
 call tcomment#DefineType('toml',             '# %s'             )
 call tcomment#DefineType('tpl',              '<!-- %s -->'      )
 call tcomment#DefineType('tup',              '# %s'             )
+call tcomment#DefineType('typescript',       tcomment#GetLineC('// %s'))
+call tcomment#DefineType('typescript_block', g:tcommentBlockC   )
+call tcomment#DefineType('typescript_inline', g:tcommentInlineC )
 call tcomment#DefineType('typoscript',       '# %s'             )
 call tcomment#DefineType('upstart',          '# %s'             )
 call tcomment#DefineType('vader',            {'col': 1, 'commentstring': '" %s' })
