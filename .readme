@@ -1,0 +1,7 @@
+
+rm /home/ubuntu/.vimrc-local
+ln -s /home/ubuntu/.vim/vimrc-2 /home/ubuntu/.vimrc-local
+
+cd $HOME/.vim/bundle/vimproc.vim && make
+
+cd $HOME/.vim/bundle/tern_for_vim && npm install
