@@ -190,8 +190,11 @@ let g:unite_source_rec_async_command = ['ag', '--follow', '--nogroup', '--nocolo
 
 "}}}
 
-let g:gista#github_user = 'hspin'
-let g:gista#post_private = 1
+let g:gista#client#default_username = 'hspin'
+" let g:gista#post_private = 1
+
+autocmd FileType markdown NeoCompleteLock
+autocmd FileType votl NeoCompleteLock
 
 let g:polyglot_disabled = ['jade']
 let g:polyglot_disabled = ['stylus']
