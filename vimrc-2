@@ -200,4 +200,7 @@ let g:polyglot_disabled = ['jade']
 let g:polyglot_disabled = ['stylus']
 let g:polyglot_disabled = ['javascript']
 
+" vim outliner leader
+let maplocalleader = ',,'
+
  " vim: set foldenable foldmethod=marker foldlevel=0:
