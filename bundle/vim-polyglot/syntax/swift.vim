@@ -105,6 +105,7 @@ syntax keyword swiftAvailabilityArg renamed unavailable introduced deprecated ob
 " Keywords {{{
 syntax keyword swiftKeywords
       \ associatedtype
+      \ associativity
       \ atexit
       \ break
       \ case
@@ -143,6 +144,8 @@ syntax keyword swiftKeywords
       \ optional
       \ override
       \ postfix
+      \ precedence
+      \ precedencegroup
       \ prefix
       \ private
       \ protocol
@@ -169,6 +172,7 @@ syntax keyword swiftKeywords
       \ willSet
 
 syntax match swiftMultiwordKeywords "indirect case"
+syntax match swiftMultiwordKeywords "indirect enum"
 " }}}
 
 " Names surrounded by backticks. This aren't limited to keywords because 1)
@@ -181,6 +185,7 @@ syntax keyword swiftAttributes
       \ @autoclosure
       \ @available
       \ @convention
+      \ @discardableResult
       \ @exported
       \ @IBAction
       \ @IBDesignable

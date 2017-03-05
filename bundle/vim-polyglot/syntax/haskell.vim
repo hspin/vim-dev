@@ -13,6 +13,15 @@ elseif exists("b:current_syntax")
   finish
 endif
 
+if !exists('g:haskell_disable_TH')
+    let g:haskell_disable_TH = 0
+endif
+
+if exists('g:haskell_backpack') && g:haskell_backpack == 1
+  syn keyword haskellBackpackStructure unit signature
+  syn keyword haskellBackpackDependency dependency
+endif
+
 syn spell notoplevel
 syn match haskellRecordField contained containedin=haskellBlock
   \ "[_a-z][a-zA-Z0-9_']*\(,\s*[_a-z][a-zA-Z0-9_']*\)*\(\s*::\|\n\s\+::\)"
@@ -44,7 +53,7 @@ syn region haskellForeignImport start="\<foreign\>" end="::" keepend
   \ haskellOperators,
   \ haskellForeignKeywords,
   \ haskellIdentifier
-syn match haskellImport "^\<import\>\s\+\(\<safe\>\s\+\)\?\(\<qualified\>\s\+\)\?.\+\(\s\+\<as\>\s\+.\+\)\?\(\s\+\<hiding\>\)\?"
+syn match haskellImport "^\s*\<import\>\s\+\(\<safe\>\s\+\)\?\(\<qualified\>\s\+\)\?.\+\(\s\+\<as\>\s\+.\+\)\?\(\s\+\<hiding\>\)\?"
   \ contains=
   \ haskellParens,
   \ haskellOperators,
@@ -82,7 +91,7 @@ syn match haskellLineComment "---*\([^-!#$%&\*\+./<=>\?@\\^|~].*\)\?$"
   \ contains=
   \ haskellTodo,
   \ @Spell
-syn match haskellBacktick "`[A-Za-z_][A-Za-z0-9_\.']*`"
+syn match haskellBacktick "`[A-Za-z_][A-Za-z0-9_\.']*#\?`"
 syn region haskellString start=+"+ skip=+\\\\\|\\"+ end=+"+
   \ contains=@Spell
 syn match haskellIdentifier "[_a-z][a-zA-z0-9_']*" contained
@@ -94,14 +103,16 @@ syn region haskellBlockComment start="{-" end="-}"
   \ haskellTodo,
   \ @Spell
 syn region haskellPragma start="{-#" end="#-}"
-syn match haskellQuasiQuoted "." containedin=haskellQuasiQuote contained
-syn region haskellQuasiQuote matchgroup=haskellTH start="\[[_a-zA-Z][a-zA-z0-9._']*|" end="|\]"
-syn region haskellTHBlock matchgroup=haskellTH start="\[\(d\|t\|p\)\?|" end="|]" contains=TOP
-syn region haskellTHDoubleBlock matchgroup=haskellTH start="\[||" end="||]" contains=TOP
 syn match haskellPreProc "^#.*$"
 syn keyword haskellTodo TODO FIXME contained
 " Treat a shebang line at the start of the file as a comment
 syn match haskellShebang "\%^#!.*$"
+if exists('g:haskell_disable_TH') && g:haskell_disable_TH == 0
+    syn match haskellQuasiQuoted "." containedin=haskellQuasiQuote contained
+    syn region haskellQuasiQuote matchgroup=haskellTH start="\[[_a-zA-Z][a-zA-z0-9._']*|" end="|\]"
+    syn region haskellTHBlock matchgroup=haskellTH start="\[\(d\|t\|p\)\?|" end="|]" contains=TOP
+    syn region haskellTHDoubleBlock matchgroup=haskellTH start="\[||" end="||]" contains=TOP
+endif
 if exists('g:haskell_enable_typeroles') && g:haskell_enable_typeroles == 1
   syn keyword haskellTypeRoles phantom representational nominal contained
   syn region haskellTypeRoleBlock matchgroup=haskellTypeRoles start="type\s\+role" end="$" keepend
@@ -190,6 +201,10 @@ else
   endif
 endif
 
+if exists('g:haskell_backpack') && g:haskell_backpack == 1
+  highlight def link haskellBackpackStructure Structure
+  highlight def link haskellBackpackDependency Include
+endif
 let b:current_syntax = "haskell"
 
 endif

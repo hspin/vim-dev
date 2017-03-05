@@ -1,26 +1,7 @@
 "=============================================================================
 " FILE: jump_list.vim
 " AUTHOR:  Shougo Matsushita <Shougo.Matsu@gmail.com>
-" License: MIT license  {{{
-"     Permission is hereby granted, free of charge, to any person obtaining
-"     a copy of this software and associated documentation files (the
-"     "Software"), to deal in the Software without restriction, including
-"     without limitation the rights to use, copy, modify, merge, publish,
-"     distribute, sublicense, and/or sell copies of the Software, and to
-"     permit persons to whom the Software is furnished to do so, subject to
-"     the following conditions:
-"
-"     The above copyright notice and this permission notice shall be included
-"     in all copies or substantial portions of the Software.
-"
-"     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-"     OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-"     MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-"     IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-"     CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-"     TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-"     SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-" }}}
+" License: MIT license
 "=============================================================================
 
 let s:save_cpo = &cpo
@@ -179,20 +160,9 @@ function! s:jump(candidate, is_highlight) abort "{{{
 
   if !has_key(a:candidate, 'action__pattern')
     " Jump to the line number.
-    let col = get(a:candidate, 'action__col', 0)
-    if col == 0 && has_key(a:candidate, 'action__col_pattern')
-      " Search col pattern.
-      let pattern = a:candidate.action__col_pattern
-      if pattern == ''
-        " Use context.input
-        let pattern = unite#get_context().input
-      endif
+    call cursor(line, 0)
 
-      let col = 0
-      silent! let col = match(getline(line), pattern) + 1
-    endif
-
-    call cursor(line, col)
+    call s:jump_column(a:candidate)
 
     call s:open_current_line(a:is_highlight)
     return
@@ -205,11 +175,13 @@ function! s:jump(candidate, is_highlight) abort "{{{
     " Not found signature.
     if line != '' && getline(line) =~# pattern
       if line('.') != line
-        execute line
+        call cursor(line, 0)
       endif
     else
       silent! call search(pattern, 'w')
     endif
+
+    call s:jump_column(a:candidate)
 
     call s:open_current_line(a:is_highlight)
     return
@@ -244,6 +216,23 @@ function! s:best_winline() abort "{{{
   return max([1, winheight(0) * g:unite_kind_jump_list_after_jump_scroll / 100])
 endfunction"}}}
 
+function! s:jump_column(candidate) abort "{{{
+  let col = get(a:candidate, 'action__col', 0)
+  if col == 0 && has_key(a:candidate, 'action__col_pattern')
+    " Search col pattern.
+    let pattern = a:candidate.action__col_pattern
+    if pattern == ''
+      " Use context.input
+      let pattern = unite#get_context().input
+    endif
+
+    let col = 0
+    silent! let col = match(getline('.'), pattern) + 1
+  endif
+
+  call cursor(0, col)
+endfunction"}}}
+
 function! s:adjust_scroll(best_winline) abort "{{{
   normal! zt
   let save_cursor = getpos('.')
@@ -269,7 +258,7 @@ function! s:open_current_line(is_highlight) abort "{{{
   normal! zz
   if a:is_highlight
     call unite#view#_clear_match_highlight()
-    call unite#view#_match_line('Search', line('.'), 10)
+    call unite#view#_match_line('Search', line('.'))
   endif
 endfunction"}}}
 

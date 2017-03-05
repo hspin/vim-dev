@@ -1,26 +1,7 @@
 "=============================================================================
 " FILE: view.vim
 " AUTHOR: Shougo Matsushita <Shougo.Matsu@gmail.com>
-" License: MIT license  {{{
-"     Permission is hereby granted, free of charge, to any person obtaining
-"     a copy of this software and associated documentation files (the
-"     "Software"), to deal in the Software without restriction, including
-"     without limitation the rights to use, copy, modify, merge, publish,
-"     distribute, sublicense, and/or sell copies of the Software, and to
-"     permit persons to whom the Software is furnished to do so, subject to
-"     the following conditions:
-"
-"     The above copyright notice and this permission notice shall be included
-"     in all copies or substantial portions of the Software.
-"
-"     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-"     OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-"     MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-"     IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-"     CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-"     TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-"     SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-" }}}
+" License: MIT license
 "=============================================================================
 
 let s:save_cpo = &cpo
@@ -186,7 +167,7 @@ function! unite#view#_redraw(is_force, winnr, is_gather_all) abort "{{{
         \ {} : unite#helper#get_current_candidate()
 
   try
-    if &filetype !=# 'unite'
+    if &filetype !=# 'unite' || !unite.is_initialized
       return
     endif
 
@@ -720,11 +701,8 @@ function! unite#view#_set_cursor_line() abort "{{{
 
   let prompt_linenr = unite.prompt_linenr
 
-  call unite#view#_clear_match()
-
   if line('.') != prompt_linenr
-    call unite#view#_match_line(context.cursor_line_highlight,
-          \ line('.'), unite.match_id)
+    call unite#view#_match_line(context.cursor_line_highlight, line('.'))
   endif
   let unite.cursor_line_time = reltime()
 endfunction"}}}
@@ -855,19 +833,26 @@ function! unite#view#_redraw_echo(expr) abort "{{{
   endtry
 endfunction"}}}
 
-function! unite#view#_match_line(highlight, line, id) abort "{{{
+function! unite#view#_match_line(highlight, line) abort "{{{
+  call unite#view#_clear_match()
+
   if &filetype ==# 'unite'
     setlocal cursorline
     return
   endif
 
+  call unite#view#_clear_match_highlight()
+
   " For compatibility
-  return exists('*matchaddpos') ?
-        \ matchaddpos(a:highlight, [a:line], 10, a:id) :
-        \ matchadd(a:highlight, '^\%'.a:line.'l.*', 10, a:id)
+  let w:unite_match_id = exists('*matchaddpos') ?
+        \ matchaddpos(a:highlight, [a:line], 10) :
+        \ matchadd(a:highlight, '^\%'.a:line.'l.*', 10)
 endfunction"}}}
 function! unite#view#_clear_match_highlight() abort "{{{
-  silent! call matchdelete(10)
+  if exists('w:unite_match_id')
+    call matchdelete(w:unite_match_id)
+    unlet w:unite_match_id
+  endif
 endfunction"}}}
 
 function! unite#view#_get_status_plane_string() abort "{{{
@@ -982,6 +967,9 @@ function! unite#view#_close_preview_window() abort "{{{
           \ 'getwinvar(v:val, "&previewwindow") != 0')
     if !empty(preview_windows)
       " Close preview window.
+      if winnr('$') == 1
+        new
+      endif
       noautocmd pclose!
     endif
   endif

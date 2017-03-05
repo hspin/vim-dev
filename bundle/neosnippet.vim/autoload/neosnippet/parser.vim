@@ -298,10 +298,14 @@ function! neosnippet#parser#_initialize_snippet_options() abort "{{{
         \ }
 endfunction"}}}
 
-function! neosnippet#parser#_get_completed_snippet(completed_item, next_text) abort "{{{
+function! neosnippet#parser#_get_completed_snippet(completed_item, cur_text, next_text) abort "{{{
   let item = a:completed_item
 
-  if has_key(item, "snippet")
+  if strridx(a:cur_text, item.word) != len(a:cur_text) - len(item.word)
+    return ''
+  endif
+
+  if has_key(item, 'snippet')
     return item.snippet
   endif
 
@@ -312,7 +316,7 @@ function! neosnippet#parser#_get_completed_snippet(completed_item, next_text) ab
     let abbr .= ' ' . item.menu
   endif
   if item.info != ''
-    let abbr = split(item.info, '\n')[0]
+    let abbr .= split(item.info, '\n')[0]
   endif
   let pairs = neosnippet#util#get_buffer_config(
       \ &filetype, '',
@@ -355,11 +359,8 @@ function! neosnippet#parser#_get_completed_snippet(completed_item, next_text) ab
     for arg in split(substitute(
           \ neosnippet#parser#_get_in_paren('<', '>', abbr),
           \ '<\zs.\{-}\ze>', '', 'g'), '[^[]\zs\s*,\s*')
-      if args != '' && arg !=# '...'
-        let args .= ', '
-      endif
       let args .= printf('${%d:#:%s%s}',
-            \ cnt, ((args != '' && arg ==# '...') ? ', ' : ''),
+            \ cnt, ((args != '') ? ', ' : ''),
             \ escape(arg, '{}'))
       let cnt += 1
     endfor
@@ -381,11 +382,8 @@ function! neosnippet#parser#_get_completed_snippet(completed_item, next_text) ab
       continue
     endif
 
-    if args != '' && arg !=# '...'
-      let args .= ', '
-    endif
     let args .= printf('${%d:#:%s%s}',
-          \ cnt, ((args != '' && arg ==# '...') ? ', ' : ''),
+          \ cnt, ((args != '') ? ', ' : ''),
           \ escape(arg, '{}'))
     let cnt += 1
   endfor
@@ -413,7 +411,7 @@ function! neosnippet#parser#_get_in_paren(key, pair, str) abort "{{{
         continue
       endif
     elseif c ==# a:pair
-      if level == 1 && s != ''
+      if level == 1 && (s != '' || a:str =~ '()\s*(.\{-})')
         return s
       else
         let level -= 1
