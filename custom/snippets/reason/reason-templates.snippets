@@ -1,0 +1,16 @@
+snippet mlt
+  module ${1:Name} = {
+    include ReactRe.Component;
+    let name = "$1";
+
+    type props = {
+      name: string
+  };
+
+  let render {props} =>
+    <h1> (ReactRe.stringToElement ("Hello, " ^ props.name)) </h1>;
+  };
+
+  include ReactRe.CreateComponent $1;
+  let createElement ::name ::children => wrapProps { name: name } ::children;
+  ${0:TARGET}
