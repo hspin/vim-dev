@@ -266,6 +266,7 @@ function! neosnippet#parser#_initialize_snippet(dict, path, line, pattern, name)
         \   neosnippet#get_placeholder_marker_pattern(). '\|'.
         \   neosnippet#get_mirror_placeholder_marker_pattern().
         \   '\|\s\+\|\n\|TARGET', ' ', 'g')
+    let abbr = substitute(abbr, '\\\(\\\|`\|\$\)', '\1', 'g')
     let a:dict.abbr = a:dict.name
   else
     let abbr = a:dict.abbr
@@ -318,6 +319,7 @@ function! neosnippet#parser#_get_completed_snippet(completed_item, cur_text, nex
   if item.info != ''
     let abbr .= split(item.info, '\n')[0]
   endif
+  let abbr = escape(abbr, '\')
   let pairs = neosnippet#util#get_buffer_config(
       \ &filetype, '',
       \ 'g:neosnippet#completed_pairs', 'g:neosnippet#_completed_pairs', {})

@@ -2,8 +2,8 @@
 " @Website:     http://www.vim.org/account/profile.php?user_id=4037
 " @License:     GPL (see http://www.gnu.org/licenses/gpl.txt)
 " @Created:     2007-09-17.
-" @Last Change: 2017-02-09.
-" @Revision:    1863
+" @Last Change: 2017-02-20.
+" @Revision:    1876
 
 " call tlog#Log('Load: '. expand('<sfile>')) " vimtlib-sfile
 if exists(':Tlibtrace') != 2
@@ -137,6 +137,9 @@ endif
 if !exists("g:tcommentGuessFileType_rnoweb")
     let g:tcommentGuessFileType_rnoweb = 'r'   "{{{2
 endif
+if !exists("g:tcommentGuessFileType_vue")
+    let g:tcommentGuessFileType_vue = 'html'   "{{{2
+endif
 
 if !exists("g:tcommentIgnoreTypes_php")
     " In php files, some syntax regions are wrongly highlighted as sql 
@@ -176,6 +179,7 @@ if !exists('g:tcommentSyntaxMap')
                 \ 'bladeEcho':          'php',
                 \ 'bladePhpParenBlock': 'php',
                 \ 'erubyExpression':    'ruby',
+                \ 'rmdChung':           'r',
                 \ 'vimMzSchemeRegion':  'scheme',
                 \ 'vimPerlRegion':      'perl',
                 \ 'vimPythonRegion':    'python',
@@ -2045,8 +2049,10 @@ endf
 function! s:GuessVimOptionsCommentString(comment_mode)
     " TLogVAR a:comment_mode
     let commentstring = &commentstring
-    if commentstring ==# '% %s'
-        let commentstring = '%% %s'
+    " let valid_f = (match(substitute(commentstring, '%\@<!\(%%\)*%s', '', 'g'), '%\@<!%[^%]') == -1)
+    let valid_f = (match(commentstring, '%\@<!%\%([^%s]\|$\)') == -1)
+    if !valid_f
+        let commentstring = substitute(commentstring, '%\@<!%\ze\([^%s]\|$\)', '%%', 'g')
     endif
     let valid_cms = (match(commentstring, '%\@<!\(%%\)*%s') != -1)
     let ccmodes = 'r'
